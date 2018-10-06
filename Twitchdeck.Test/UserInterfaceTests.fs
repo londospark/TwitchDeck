@@ -26,23 +26,18 @@ let stackPanelChildren view =
     |> attr<ViewElement> "Content"
     |> attr<ViewElement[]> "Children"
 
-// THIS DOES NOT WORK - FIXME
 let rec descendents (view: ViewElement) : ViewElement list =
     let (content : ValueOption<ViewElement>) = view.TryGetAttribute "Content"
-    let contentList =
-        match content with 
-        | ValueSome x -> [x] @ descendents x
-        | ValueNone -> []
-
     let (children : ValueOption<ViewElement[]>) = view.TryGetAttribute "Children"
-    let childrenList =
-        match children with 
-        | ValueSome x ->
-            List.ofArray x
-            |> List.collect (fun x -> descendents x)
-        | ValueNone -> []
+    [ match content with
+      | ValueSome content' -> yield content'
+      | ValueNone -> ()
 
-    contentList @ childrenList
+      match children with
+      | ValueSome children' ->
+          for child in children' do
+              yield! descendents child
+      | ValueNone -> () ]
 
 [<Fact>]
 let ``Run some code`` () =
