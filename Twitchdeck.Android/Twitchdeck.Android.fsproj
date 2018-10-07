@@ -26,7 +26,7 @@
     <RestorePackages>true</RestorePackages>
     <OtherFlags>/warnon:1182</OtherFlags>
     <WarningLevel>4</WarningLevel>
-    <SelectedDevice>twitchdeck</SelectedDevice>
+    <SelectedDevice>Nexus 9</SelectedDevice>
     <DefaultDevice>twitchdeck</DefaultDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
