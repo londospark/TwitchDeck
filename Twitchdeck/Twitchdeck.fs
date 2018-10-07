@@ -8,19 +8,20 @@ open Xamarin.Forms
 open System
 
 module Views =
-    let sceneButton name selected =
+    let sceneButton name selected command =
         let color = if selected then (Color.FromHex "#33B2FF") else Color.Default
         View.Button(
             text = name,
             verticalOptions = LayoutOptions.FillAndExpand,
-            backgroundColor = color)
+            backgroundColor = color,
+            command = command)
 
     let noScenes =
         View.ContentPage(content = View.Label(text="There are no scenes defined."))
 
-    let scenes (names: string list) selectedScene =
+    let scenes (names: string list) selectedScene selectSceneCommand =
         View.ContentPage(
-            content = View.StackLayout(children = [for name in names -> sceneButton name (name = selectedScene)]))
+            content = View.StackLayout(children = [for name in names -> sceneButton name (name = selectedScene) (selectSceneCommand name)]))
 
 module App = 
     type Model = {
@@ -31,8 +32,9 @@ module App =
     type Msg =
         | Add of string
         | Remove of string
+        | SelectScene of string
 
-    let initModel = { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"]; SelectedScene = "Scene 2" }
+    let initModel = { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"; "Scene 4"]; SelectedScene = "Scene 1" }
 
     let init () = initModel, Cmd.none
 
@@ -40,14 +42,14 @@ module App =
         match msg with
         | Add name -> model, Cmd.none
         | Remove name -> model, Cmd.none
+        | SelectScene name -> { model with SelectedScene = name } , Cmd.none
 
-    let view (model: Model) dispatch =
+    let view (model: Model) (dispatch: Msg -> unit)=
         if model.SceneNames.Length = 0 then
             Views.noScenes
-        else
-            Views.scenes model.SceneNames model.SelectedScene
+        else // Look into this from an architecture standpoint.
+            Views.scenes model.SceneNames model.SelectedScene (fun name () -> dispatch (SelectScene name))
             
-
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view
 

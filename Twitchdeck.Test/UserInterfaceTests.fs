@@ -26,26 +26,23 @@ let stackPanelChildren view =
     |> attr<ViewElement> "Content"
     |> attr<ViewElement[]> "Children"
 
-// THIS DOES NOT WORK - FIXME
-let rec descendents (view: ViewElement) : ViewElement list =
+let rec descendentsAndSelf (view: ViewElement) : ViewElement list =
     let (content : ValueOption<ViewElement>) = view.TryGetAttribute "Content"
-    let contentList =
-        match content with 
-        | ValueSome x -> [x] @ descendents x
-        | ValueNone -> []
-
     let (children : ValueOption<ViewElement[]>) = view.TryGetAttribute "Children"
-    let childrenList =
-        match children with 
-        | ValueSome x ->
-            List.ofArray x
-            |> List.collect (fun x -> descendents x)
-        | ValueNone -> []
+    [ match content with
+      | ValueSome content' -> yield! (descendentsAndSelf content')
+      | ValueNone -> ()
 
-    contentList @ childrenList
+      match children with
+      | ValueSome children' ->
+          for child in children' do
+              yield! descendentsAndSelf child
+      | ValueNone -> ()
+      
+      yield view ]
 
 [<Fact>]
-let ``Run some code`` () =
+let ``descendantsAndSelf returns the correct number of elements`` () =
     let view =
         View.ContentPage(
             content = View.StackLayout(
@@ -56,8 +53,17 @@ let ``Run some code`` () =
                 View.StackLayout(
                     children = [View.Button(); View.Button(); View.Button()])]))
 
-    let desc = view |> descendents
-    desc
+    let desc = view |> descendentsAndSelf
+    desc |> should haveLength 10
+
+[<Fact>]
+let ``Run some code`` () =
+    let model = { SceneNames = ["Scene 1"]; SelectedScene = "" }
+    let button =
+        Twitchdeck.App.view model ignore
+        |> stackPanelChildren
+        |> Array.find rendersAs<Xamarin.Forms.Button>
+    button
 
 [<Fact>]
 let ``With no specified scenes we should be displaying the no scenes view`` () =
@@ -108,3 +114,30 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
         |> Array.find (fun x -> x.Text = model.SelectedScene)
 
     button.BackgroundColor |> should equal (Color.FromHex "#33B2FF")
+
+[<Fact>]
+let ``When we send a SelectScene message, the relavent button becomes highlighted`` () =
+    let model = { SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = ""}
+
+    let (model, _command) = Twitchdeck.App.update (Msg.SelectScene "Scene 1") model
+    model.SelectedScene |> should equal "Scene 1"
+
+
+[<Fact>]
+let ``When we press a button it executes the command passed to it`` () =
+    let model = { SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2"}
+
+    let mutable messagesReceived = []
+
+    Twitchdeck.App.view model (
+        fun message ->
+            messagesReceived <- message :: messagesReceived )
+    |> stackPanelChildren
+    |> Array.filter rendersAs<Xamarin.Forms.Button>
+    |> Array.map (fun button -> button |> attr<(unit -> unit)> "ButtonCommand")
+    |> Array.iter (fun func -> func ())
+
+    messagesReceived |> should contain (SelectScene "Scene 1")
+    messagesReceived |> should contain (SelectScene "Scene 2")
+
+
