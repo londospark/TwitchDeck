@@ -47,11 +47,11 @@ let ``descendantsAndSelf returns the correct number of elements`` () =
         View.ContentPage(
             content = View.StackLayout(
                 children = [
-                View.StackLayout(
-                    children = [View.Button(); View.Button(); View.Button()]);
+                    View.StackLayout(
+                        children = [View.Button(); View.Button(); View.Button()]);
                     
-                View.StackLayout(
-                    children = [View.Button(); View.Button(); View.Button()])]))
+                    View.StackLayout(
+                        children = [View.Button(); View.Button(); View.Button()])]))
 
     let desc = view |> descendentsAndSelf
     desc |> should haveLength 10

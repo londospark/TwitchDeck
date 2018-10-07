@@ -3,6 +3,8 @@ language: csharp
 os: osx
 osx_image: xcode10
 
+sudo: true
+
 dotnet: 2.1.402
 
 env:
@@ -16,6 +18,6 @@ install:
   - dotnet tool install fake-cli -g
 
 script:
-  - ./install-xamarin-android-ios.sh
+  - sudo ./install-xamarin-android-ios.sh
   - msbuild /t:Restore
   - msbuild
