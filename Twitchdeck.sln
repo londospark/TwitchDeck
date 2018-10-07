@@ -13,10 +13,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{69BAAF04-D6F0-4EEF-B511-F480B669EC17}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2DF3D77D-6E19-40D1-9710-5C2E48F878A6}"
-	ProjectSection(SolutionItems) = preProject
-		.travis.yml = .travis.yml
-		install-xamarin-android-ios.sh = install-xamarin-android-ios.sh
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
