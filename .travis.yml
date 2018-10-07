@@ -20,7 +20,7 @@ install:
   - sudo installer -pkg "xamarin.android-${MONO_ANDROID_VERSION}.pkg" -target /
   - wget https://dl.xamarin.com/MonoTouch/Mac/xamarin.ios-$MONO_IOS_VERSION.pkg
   - sudo installer -pkg "xamarin.ios-${MONO_IOS_VERSION}.pkg" -target /
-  - /Library/Frameworks/Mono.framework/Commands/nuget restore solution-name.sln
+  - /Library/Frameworks/Mono.framework/Commands/nuget restore Twitchdeck.sln
 
 script:
   - msbuild /p:Configuration=Release Twitchdeck.sln
