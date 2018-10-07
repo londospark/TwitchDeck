@@ -26,18 +26,20 @@ let stackPanelChildren view =
     |> attr<ViewElement> "Content"
     |> attr<ViewElement[]> "Children"
 
-let rec descendents (view: ViewElement) : ViewElement list =
+let rec descendentsAndSelf (view: ViewElement) : ViewElement list =
     let (content : ValueOption<ViewElement>) = view.TryGetAttribute "Content"
     let (children : ValueOption<ViewElement[]>) = view.TryGetAttribute "Children"
     [ match content with
-      | ValueSome content' -> yield content'
+      | ValueSome content' -> yield! (descendentsAndSelf content')
       | ValueNone -> ()
 
       match children with
       | ValueSome children' ->
           for child in children' do
-              yield! descendents child
-      | ValueNone -> () ]
+              yield! descendentsAndSelf child
+      | ValueNone -> ()
+      
+      yield view ]
 
 [<Fact>]
 let ``Run some code`` () =
@@ -51,7 +53,7 @@ let ``Run some code`` () =
                 View.StackLayout(
                     children = [View.Button(); View.Button(); View.Button()])]))
 
-    let desc = view |> descendents
+    let desc = view |> descendentsAndSelf
     desc
 
 [<Fact>]
