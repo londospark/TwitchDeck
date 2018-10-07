@@ -3,21 +3,28 @@ language: csharp
 os: osx
 osx_image: xcode10
 
-sudo: true
-
 dotnet: 2.1.402
 
 env:
   global:
-    - ANDROID_SDK_PATH="/usr/local/share/android-sdk"
-    - PATH=$ANDROID_SDK_PATH/platform-tools:$PATH
+    - ANDROID_COMPONENTS=build-tools-27.0.3,android-27,extra-android-support,extra-google-google_play_services,extra-google-m2repository,extra-android-m2repository
+    - ANDROID_LICENSES=android-sdk-license-c81a61d9
+    #- MONO_VERSION=5.12.0
+    - MONO_ANDROID_VERSION=9.0.0-20
+    - MONO_IOS_VERSION=9.0.0-20
 
 mono: latest
 
 install:
-  - dotnet tool install fake-cli -g
+  - curl -L https://raw.github.com/embarkmobile/android-sdk-installer/version-2/android-sdk-installer | bash /dev/stdin --install=$ANDROID_COMPONENTS --accept=$ANDROID_LICENSES
+  - source ~/.android-sdk-installer/env
+  #- wget "http://download.mono-project.com/archive/${MONO_VERSION}/macos-10-universal/MonoFramework-MDK-${MONO_VERSION}.macos10.xamarin.universal.pkg"
+  #- sudo installer -pkg "MonoFramework-MDK-${MONO_VERSION}.macos10.xamarin.universal.pkg" -target /
+  - wget "https://dl.xamarin.com/MonoforAndroid/Mac/xamarin.android-${MONO_ANDROID_VERSION}.pkg"
+  - sudo installer -pkg "xamarin.android-${MONO_ANDROID_VERSION}.pkg" -target /
+  - wget https://dl.xamarin.com/MonoTouch/Mac/xamarin.ios-$MONO_IOS_VERSION.pkg
+  - sudo installer -pkg "xamarin.ios-{$MONO_IOS_VERSION}.pkg" -target /
+  - /Library/Frameworks/Mono.framework/Commands/nuget restore solution-name.sln
 
 script:
-  - sudo ./install-xamarin-android-ios.sh
-  - msbuild /t:Restore
-  - msbuild
+  - msbuild /p:Configuration=Release Twitchdeck.sln
