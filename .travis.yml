@@ -19,4 +19,5 @@ install:
 
 script:
   - ./install-xamarin-android-ios.sh
+  - msbuild /t:Restore
   - msbuild
