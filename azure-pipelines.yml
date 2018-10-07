@@ -10,7 +10,7 @@ jobs:
     - task: DotNetCoreCLI@2
       inputs:
         command: test
-        projects: '**/*Tests/*.fsproj'
+        projects: '**/*Test/*.fsproj'
         arguments: '--configuration $(buildConfiguration)'
 
 - job: Android
