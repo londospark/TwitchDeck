@@ -11,7 +11,7 @@ env:
     - ANDROID_LICENSES=android-sdk-license-c81a61d9
     #- MONO_VERSION=5.12.0
     - MONO_ANDROID_VERSION=9.0.0-20
-    - MONO_IOS_VERSION=9.0.0-20
+    - MONO_IOS_VERSION=12.2.0.26
 
 mono: latest
 
