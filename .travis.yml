@@ -9,7 +9,7 @@ mono: 5.12.0
 env:
   global:
     - ANDROID_COMPONENTS=build-tools-27.0.3,android-27,extra-android-support,extra-google-google_play_services,extra-google-m2repository,extra-android-m2repository
-    - ANDROID_LICENSES=android-sdk-license-c81a61d9
+    - ANDROID_LICENSES=android-sdk-license-2742d1c5
     - MONO_ANDROID_VERSION=9.0.0-20
     - MONO_IOS_VERSION=12.2.0.26
 
@@ -20,7 +20,7 @@ install:
   - sudo installer -pkg "xamarin.android-${MONO_ANDROID_VERSION}.pkg" -target /
   - wget https://dl.xamarin.com/MonoTouch/Mac/xamarin.ios-$MONO_IOS_VERSION.pkg
   - sudo installer -pkg "xamarin.ios-${MONO_IOS_VERSION}.pkg" -target /
-  - /Library/Frameworks/Mono.framework/Commands/nuget restore Twitchdeck.sln
 
 script:
+  - msbuild /t:restore Twitchdeck.sln
   - msbuild /p:Configuration=Release Twitchdeck.sln
