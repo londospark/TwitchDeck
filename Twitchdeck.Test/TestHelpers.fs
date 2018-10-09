@@ -8,11 +8,11 @@ let rendersAs<'TView> (viewElement: ViewElement) : bool =
 let hydrate<'TView> (viewElement: ViewElement) : 'TView =
     viewElement.Create() :?> 'TView
 
-let attr<'T> name (parent : ViewElement) =
+let tryGetAttr<'T> name (parent : ViewElement) =
     let (c : ValueOption<'T>) = parent.TryGetAttribute name
     match c with
-    | ValueSome x -> x
-    | ValueNone -> raise (System.Exception(sprintf "Attribute %s not found" name))
+    | ValueSome x -> Some x
+    | ValueNone -> None
 
 let rec descendentsAndSelf (view: ViewElement) : ViewElement list =
     let (content : ValueOption<ViewElement>) = view.TryGetAttribute "Content"
@@ -33,4 +33,10 @@ let descendents (view: ViewElement) : ViewElement list =
     descendentsAndSelf view
     |> List.filter (fun item -> not (item = view))
 
-
+let tryFindElementById (lookingFor: string) (view: ViewElement) : ViewElement option =
+    view
+    |> descendentsAndSelf
+    |> List.tryFind (fun v ->
+        match v |> tryGetAttr<string> "AutomationId" with
+        | Some id -> lookingFor = id
+        | None    -> false)

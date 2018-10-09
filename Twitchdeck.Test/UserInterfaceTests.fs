@@ -1,14 +1,18 @@
 ﻿module UserInterface
 
+open System.Drawing
+open Xamarin.Forms
+
 open Xunit
 open FsUnit.Xunit
-open FsCheck.Xunit
-open Twitchdeck.App
-open Fabulous.DynamicViews
+
 open FsCheck
-open Xamarin.Forms
-open Twitchdeck
+open FsCheck.Xunit
+
 open TestHelpers
+
+open Twitchdeck.App
+open Twitchdeck
 
 [<Fact>]
 let ``With no specified scenes we should be displaying the no scenes view`` () =
@@ -79,7 +83,10 @@ let ``When we press a button it executes the command passed to it`` () =
             messagesReceived <- message :: messagesReceived )
     |> descendentsAndSelf
     |> List.filter rendersAs<Xamarin.Forms.Button>
-    |> List.map (fun button -> button |> attr<(unit -> unit)> "ButtonCommand")
+    |> List.map (fun button ->
+        match button |> tryGetAttr<(unit -> unit)> "ButtonCommand" with
+        | Some fn -> fn
+        | None    -> raise (Xunit.Sdk.XunitException(sprintf "Button with text: '%s' does not have a command" (button |> hydrate<Xamarin.Forms.Button>).Text)))
     |> List.iter (fun func -> func ())
 
     messagesReceived |> should contain (SelectScene "Scene 1")
