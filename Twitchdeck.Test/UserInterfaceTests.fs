@@ -8,62 +8,7 @@ open Fabulous.DynamicViews
 open FsCheck
 open Xamarin.Forms
 open Twitchdeck
-
-let rendersAs<'TView> (viewElement: ViewElement) : bool =
-    viewElement.TargetType = typedefof<'TView>
-
-let hydrate<'TView> (viewElement: ViewElement) : 'TView =
-    viewElement.Create() :?> 'TView
-
-let attr<'T> name (parent : ViewElement) =
-        let (c : ValueOption<'T>) = parent.TryGetAttribute name
-        match c with
-        | ValueSome x -> x
-        | ValueNone -> raise (System.Exception(sprintf "Attribute %s not found" name))
-
-let stackPanelChildren view =
-    view 
-    |> attr<ViewElement> "Content"
-    |> attr<ViewElement[]> "Children"
-
-let rec descendentsAndSelf (view: ViewElement) : ViewElement list =
-    let (content : ValueOption<ViewElement>) = view.TryGetAttribute "Content"
-    let (children : ValueOption<ViewElement[]>) = view.TryGetAttribute "Children"
-    [ match content with
-      | ValueSome content' -> yield! (descendentsAndSelf content')
-      | ValueNone -> ()
-
-      match children with
-      | ValueSome children' ->
-          for child in children' do
-              yield! descendentsAndSelf child
-      | ValueNone -> ()
-      
-      yield view ]
-
-[<Fact>]
-let ``descendantsAndSelf returns the correct number of elements`` () =
-    let view =
-        View.ContentPage(
-            content = View.StackLayout(
-                children = [
-                    View.StackLayout(
-                        children = [View.Button(); View.Button(); View.Button()]);
-                    
-                    View.StackLayout(
-                        children = [View.Button(); View.Button(); View.Button()])]))
-
-    let desc = view |> descendentsAndSelf
-    desc |> should haveLength 10
-
-[<Fact>]
-let ``Run some code`` () =
-    let model = { SceneNames = ["Scene 1"]; SelectedScene = "" }
-    let button =
-        Twitchdeck.App.view model ignore
-        |> stackPanelChildren
-        |> Array.find rendersAs<Xamarin.Forms.Button>
-    button
+open TestHelpers
 
 [<Fact>]
 let ``With no specified scenes we should be displaying the no scenes view`` () =
@@ -75,9 +20,9 @@ let ``With no specified scenes we should be displaying the no scenes view`` () =
 let ``With a single scene defined we should see a single button`` () =
     let model = { SceneNames = ["Scene 1"]; SelectedScene = "" }
     Twitchdeck.App.view model ignore
-    |> stackPanelChildren
-    |> Array.filter rendersAs<Xamarin.Forms.Button>
-    |> Array.length
+    |> descendentsAndSelf
+    |> List.filter rendersAs<Xamarin.Forms.Button>
+    |> List.length
     |> should equal 1
     
 
@@ -85,8 +30,8 @@ let ``With a single scene defined we should see a single button`` () =
 let ``The button for a single scene should have text matching the scene name`` (sceneName: string) =
     let model = { SceneNames = [sceneName]; SelectedScene = "" }
     let button = Twitchdeck.App.view model ignore
-                |> stackPanelChildren
-                |> Array.find rendersAs<Xamarin.Forms.Button>
+                |> descendentsAndSelf
+                |> List.find rendersAs<Xamarin.Forms.Button>
                 |> hydrate<Xamarin.Forms.Button>
 
     button.Text |> should equal sceneName
@@ -97,9 +42,9 @@ let ``For each scene in the model we get a button`` (sceneNames: string list) =
         fun () ->
             let model = { SceneNames = sceneNames; SelectedScene = "" }
             Twitchdeck.App.view model ignore
-            |> stackPanelChildren
-            |> Array.filter rendersAs<Xamarin.Forms.Button>
-            |> Array.length
+            |> descendentsAndSelf
+            |> List.filter rendersAs<Xamarin.Forms.Button>
+            |> List.length
             |> should equal sceneNames.Length
 
 [<Fact>]
@@ -108,10 +53,10 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
 
     let button =
         Twitchdeck.App.view model ignore
-        |> stackPanelChildren
-        |> Array.filter rendersAs<Xamarin.Forms.Button>
-        |> Array.map hydrate<Xamarin.Forms.Button>
-        |> Array.find (fun x -> x.Text = model.SelectedScene)
+        |> descendentsAndSelf
+        |> List.filter rendersAs<Xamarin.Forms.Button>
+        |> List.map hydrate<Xamarin.Forms.Button>
+        |> List.find (fun x -> x.Text = model.SelectedScene)
 
     button.BackgroundColor |> should equal (Color.FromHex "#33B2FF")
 
@@ -132,10 +77,10 @@ let ``When we press a button it executes the command passed to it`` () =
     Twitchdeck.App.view model (
         fun message ->
             messagesReceived <- message :: messagesReceived )
-    |> stackPanelChildren
-    |> Array.filter rendersAs<Xamarin.Forms.Button>
-    |> Array.map (fun button -> button |> attr<(unit -> unit)> "ButtonCommand")
-    |> Array.iter (fun func -> func ())
+    |> descendentsAndSelf
+    |> List.filter rendersAs<Xamarin.Forms.Button>
+    |> List.map (fun button -> button |> attr<(unit -> unit)> "ButtonCommand")
+    |> List.iter (fun func -> func ())
 
     messagesReceived |> should contain (SelectScene "Scene 1")
     messagesReceived |> should contain (SelectScene "Scene 2")
