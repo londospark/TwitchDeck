@@ -5,7 +5,6 @@ open System.Diagnostics
 open Fabulous.Core
 open Fabulous.DynamicViews
 open Xamarin.Forms
-open System
 
 module Views =
     let sceneButton name selected command =
@@ -21,9 +20,14 @@ module Views =
 
     let scenes (names: string list) selectedScene selectSceneCommand =
         View.ContentPage(
-            content = View.StackLayout(children = [for name in names -> sceneButton name (name = selectedScene) (selectSceneCommand name)]))
+            content = View.StackLayout(
+                        automationId = "SceneButtonContainer",
+                        children = [for name in names ->
+                                        sceneButton name (name = selectedScene) (selectSceneCommand name)]))
 
 module App = 
+    open Twitchdeck.OBSWebsockets
+
     type Model = {
         SceneNames: string list
         SelectedScene: string
@@ -33,8 +37,13 @@ module App =
         | Add of string
         | Remove of string
         | SelectScene of string
+    
+    let setup () =
+        // Make sure we can use the lib.
+        let _result = Socket.socket "{\"request-type\": \"GetAuthRequired\", \"message-id\": \"1\"}" |> Async.RunSynchronously
+        { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"; "Scene 4"]; SelectedScene = "Scene 1" }
 
-    let initModel = { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"; "Scene 4"]; SelectedScene = "Scene 1" }
+    let initModel = setup ()
 
     let init () = initModel, Cmd.none
 

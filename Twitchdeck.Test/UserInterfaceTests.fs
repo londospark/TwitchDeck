@@ -14,6 +14,11 @@ open TestHelpers
 open Twitchdeck.App
 open Twitchdeck
 
+let getSceneButtonContainer rootView =
+    match rootView |> tryFindElementById "SceneButtonContainer" with
+    | Some element -> element
+    | None -> raise (Xunit.Sdk.XunitException("Element 'SceneButtonContainer' Could not be found in the given view."))
+
 [<Fact>]
 let ``With no specified scenes we should be displaying the no scenes view`` () =
     let model = { SceneNames = []; SelectedScene = "" }
@@ -24,7 +29,8 @@ let ``With no specified scenes we should be displaying the no scenes view`` () =
 let ``With a single scene defined we should see a single button`` () =
     let model = { SceneNames = ["Scene 1"]; SelectedScene = "" }
     Twitchdeck.App.view model ignore
-    |> descendentsAndSelf
+    |> getSceneButtonContainer
+    |> descendents
     |> List.filter rendersAs<Xamarin.Forms.Button>
     |> List.length
     |> should equal 1
@@ -34,19 +40,21 @@ let ``With a single scene defined we should see a single button`` () =
 let ``The button for a single scene should have text matching the scene name`` (sceneName: string) =
     let model = { SceneNames = [sceneName]; SelectedScene = "" }
     let button = Twitchdeck.App.view model ignore
-                |> descendentsAndSelf
+                |> getSceneButtonContainer
+                |> descendents
                 |> List.find rendersAs<Xamarin.Forms.Button>
                 |> hydrate<Xamarin.Forms.Button>
 
     button.Text |> should equal sceneName
     
 [<Property>]
-let ``For each scene in the model we get a button`` (sceneNames: string list) =
+let ``For each scene in the model we get a button within the correct container`` (sceneNames: string list) =
     not sceneNames.IsEmpty ==>
         fun () ->
             let model = { SceneNames = sceneNames; SelectedScene = "" }
             Twitchdeck.App.view model ignore
-            |> descendentsAndSelf
+            |> getSceneButtonContainer
+            |> descendents
             |> List.filter rendersAs<Xamarin.Forms.Button>
             |> List.length
             |> should equal sceneNames.Length
@@ -57,7 +65,8 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
 
     let button =
         Twitchdeck.App.view model ignore
-        |> descendentsAndSelf
+        |> getSceneButtonContainer
+        |> descendents
         |> List.filter rendersAs<Xamarin.Forms.Button>
         |> List.map hydrate<Xamarin.Forms.Button>
         |> List.find (fun x -> x.Text = model.SelectedScene)
