@@ -27,6 +27,7 @@ module Views =
 
 module App = 
     open Twitchdeck.OBSWebsockets
+    open System
 
     type Model = {
         SceneNames: string list
@@ -45,9 +46,7 @@ module App =
         //let _result = Socket.socket "{\"request-type\": \"GetAuthRequired\", \"message-id\": \"1\"}" |> Async.RunSynchronously
         { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"; "Scene 4"]; SelectedScene = "Scene 1" }
 
-    let initModel = setup ()
-
-    let init () = initModel, Cmd.none
+    let init () = setup (), Cmd.none
 
     let update msg model =
         match msg with
