@@ -1,7 +1,11 @@
 ﻿open System
 open Twitchdeck.OBSWebsockets
+open System.Threading.Tasks
 
 [<EntryPoint>]
 let main argv =
-    printfn "%s" (Socket.socket "{\"request-type\": \"GetAuthRequired\", \"message-id\": \"1\"}" |> Async.RunSynchronously)
+    async {
+        let! authResponse = OBS.authenticate None
+        printfn "%A" authResponse
+    } |> Async.RunSynchronously
     0

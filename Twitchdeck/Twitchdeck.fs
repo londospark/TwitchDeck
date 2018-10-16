@@ -40,10 +40,7 @@ module App =
         | SelectScene of string
     
     let setup () =
-        // Make sure we can use the lib.
-        // Someone (Gareth) forgot that the tests would fail with this line in as we don't have an OBS instance running in CI
-        // At some point we'll look at external dependencies in detail.
-        //let _result = Socket.socket "{\"request-type\": \"GetAuthRequired\", \"message-id\": \"1\"}" |> Async.RunSynchronously
+        let _result = OBS.authenticate None
         { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"; "Scene 4"]; SelectedScene = "Scene 1" }
 
     let init () = setup (), Cmd.none
