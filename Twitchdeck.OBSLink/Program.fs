@@ -5,7 +5,7 @@ open System.Threading.Tasks
 [<EntryPoint>]
 let main argv =
     async {
-        let! authResponse = OBS.authenticate None
-        printfn "%A" authResponse
+        let! scenes = OBS.getSceneList ()
+        printfn "%A" scenes
     } |> Async.RunSynchronously
     0

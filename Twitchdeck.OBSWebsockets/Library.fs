@@ -5,6 +5,7 @@ open FSharp.Data
 
 type RequestType =
     | GetAuthRequired
+    | GetSceneList
 
 type JsonRequest = {
     ``request-type`` : string
@@ -81,9 +82,13 @@ module OBS =
             ``message-id`` = request.messageId
         }
         JsonConvert.SerializeObject(request)
+    
+    let requestFromType type' =
+        { requestType = type'; messageId = Guid.NewGuid() }
 
-    let authRequiredRequest () =
-        { requestType = GetAuthRequired; messageId = Guid.NewGuid() }
+    let authRequiredRequest () = requestFromType GetAuthRequired
+
+    let getSceneListRequest () = requestFromType GetSceneList
     
     let sendRequest request =
         request |> serialiseRequest |> FsWebsocket.sendRequest
@@ -105,4 +110,10 @@ module OBS =
         async {
             let! challenge = authRequiredRequest () |> sendRequest
             return challenge |> authenticateFromChallenge password
+        }
+
+    let getSceneList () =
+        async {
+            let! response = getSceneListRequest () |> sendRequest
+            return response
         }
