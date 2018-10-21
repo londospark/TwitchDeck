@@ -35,23 +35,30 @@ module App =
     }
 
     type Msg =
+        | Scenes of string list
         | Add of string
         | Remove of string
         | SelectScene of string
     
-    let setup () =
-        let _result = OBS.authenticate None
-        { SceneNames = ["Scene 1"; "Scene 2"; "Scene 3"; "Scene 4"]; SelectedScene = "Scene 1" }
+    let setup dispatch =
+        async {
+            do! OBS.startCommunication ()
+            OBS.getSceneList <|
+                fun scenes ->
+                    dispatch (Scenes scenes)
+                    async.Zero ()
+        } |> Async.RunSynchronously
 
-    let init () = setup (), Cmd.none
+    let init () = { SceneNames = []; SelectedScene = "" }, Cmd.ofSub setup
 
     let update msg model =
         match msg with
         | Add name -> model, Cmd.none
         | Remove name -> model, Cmd.none
-        | SelectScene name -> { model with SelectedScene = name } , Cmd.none
+        | SelectScene name -> { model with SelectedScene = name }, Cmd.none
+        | Scenes scenes -> { model with SceneNames = scenes }, Cmd.none
 
-    let view (model: Model) (dispatch: Msg -> unit)=
+    let view (model: Model) (dispatch: Msg -> unit) =
         if model.SceneNames.Length = 0 then
             Views.noScenes
         else // Look into this from an architecture standpoint.

@@ -2,6 +2,8 @@ namespace Twitchdeck.OBSWebsockets
 open Newtonsoft.Json
 open System
 open FSharp.Data
+open Chiron
+open Chiron.Operators
 
 type RequestType =
     | GetAuthRequired
@@ -17,6 +19,12 @@ type Request = {
     messageId : Guid
 }
 
+type Response = 
+    { responseId : Guid }
+    static member FromJson (_:Response) =
+        fun id ->
+          { responseId = id |> Guid.Parse }
+    <!> Json.read "message-id"
 type AuthChallenge = JsonProvider<"""
 [{
     "authRequired": true,
@@ -31,47 +39,122 @@ type AuthChallenge = JsonProvider<"""
     "status": "ok"
 }]""", SampleIsList=true>
 
+module RequestResponse =
+
+    type MessageId = MessageId of Guid
+
+    type Weave =
+        // Could this also be a request?
+        | Send of MessageId * string * (string -> Async<unit>)
+        | Receive of MessageId * string
+        | Event // Sent by OBS
+        | Quit
+
+    let messageWeaver sender =
+        let start (processor: MailboxProcessor<_>) =
+            let rec loop callbacks =
+                async {
+                    let! token = Async.CancellationToken
+                    let! message = processor.Receive ()
+
+                    let continuation =
+                        match message with
+                        | Send (messageId, request, receiver) ->
+                            if callbacks |> Map.containsKey messageId then
+                                failwithf "There's already a receiver defined for '%A'" messageId
+                            async {
+                                do! request |> sender token
+                                return! loop (callbacks |> Map.add messageId receiver)
+                            }
+                        | Receive (messageId, response) ->
+                            match callbacks |> Map.tryFind messageId with
+                            | None -> failwithf "No receiver found for message: '%A'" messageId
+                            | Some callback -> 
+                                async {
+                                    do! callback response
+                                    return! loop (callbacks |> Map.remove messageId)
+                                }
+                        | Event -> loop callbacks
+                        | Quit -> async.Return ()
+                    return! continuation
+                }
+            loop Map.empty
+        MailboxProcessor.Start start
+
+
+
 module FsWebsocket =
     open System.Net.WebSockets
     open System.Threading
     open System.Text
+    open RequestResponse
 
-    let receive (client: ClientWebSocket) (receiveSegment: ArraySegment<byte>) (token: CancellationToken) : Async<string> =
-        let rec receiveImpl (buffer : ResizeArray<byte>) : Async<ResizeArray<byte>> =
-            async {
-                let! result = client.ReceiveAsync(receiveSegment, token) |> Async.AwaitTask
-                let trimmed = receiveSegment.Array |> Array.take result.Count
-                buffer.AddRange trimmed
-                return! match result.EndOfMessage with
-                        | true -> buffer |> async.Return
-                        | false -> receiveImpl buffer
-            }
-        async {
-            let! message = receiveImpl (new ResizeArray<byte>())
-            let encoding = new UTF8Encoding()
-            return message.ToArray() |> encoding.GetString
-        }
+    let client = new ClientWebSocket()
 
-    let sendRequest (message : string) =
+    let weaveFrom (json: string) =
+        let parsed : Choice<Response, string> = json |> Json.parse |> Json.tryDeserialize
+        match parsed with
+        | Choice1Of2 { responseId = id } -> Receive ((MessageId id), json)
+        | Choice2Of2 _ -> Event
+        
+    let receive (weaver: MailboxProcessor<Weave>) =
+        let receiveBuffer = Array.create 8 0uy
+        let receiveSegment = new ArraySegment<byte>(receiveBuffer)
+        let token = Async.CancellationToken |> Async.RunSynchronously
+        let start (_processor: MailboxProcessor<_>) =
+            let rec loop (client: ClientWebSocket) (receiveSegment: ArraySegment<byte>) (token: CancellationToken) =
+                async {
+                    let receiveString (client: ClientWebSocket) (receiveSegment: ArraySegment<byte>) (token: CancellationToken) : Async<string> =
+                        let rec receiveImpl (buffer : ResizeArray<byte>) : Async<ResizeArray<byte>> =
+                            async {
+                                let! result = client.ReceiveAsync(receiveSegment, token) |> Async.AwaitTask
+                                let trimmed = receiveSegment.Array |> Array.take result.Count
+                                buffer.AddRange trimmed
+                                return! match result.EndOfMessage with
+                                        | true -> buffer |> async.Return
+                                        | false -> receiveImpl buffer
+                            }
+                        async {
+                            let! message = receiveImpl (new ResizeArray<byte>())
+                            let encoding = new UTF8Encoding()
+                            return message.ToArray() |> encoding.GetString
+                        }
+                    let! response = receiveString client receiveSegment token
+                    let weave = weaveFrom response
+                    do weaver.Post weave
+                    do! loop client receiveSegment token
+                }
+            loop client receiveSegment token
+        MailboxProcessor.Start start
+        
+
+    let sendRequest token (message : string) =
         async { 
             let encoding = new UTF8Encoding()
-            use client = new ClientWebSocket()
-            let! token = Async.CancellationToken
             
             let buffer = message |> encoding.GetBytes
             let bufferSegment = new ArraySegment<byte>(buffer)
             
-            let receiveBuffer = Array.create 8 0uy
-            let receiveSegment = new ArraySegment<byte>(receiveBuffer)
-            
-            do! client.ConnectAsync(new Uri("ws://192.168.1.100:4444"), token) |> Async.AwaitTask
             do! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> Async.AwaitTask
-            
-            return! receive client receiveSegment token
         }
-    
+
+    let start weaver =
+        async {
+            let! token = Async.CancellationToken 
+            do! client.ConnectAsync(new Uri("ws://192.168.1.100:4444"), token) |> Async.AwaitTask
+            receive weaver |> ignore
+        }
+
 module OBS =
+    open RequestResponse
     open Microsoft.FSharp.Reflection
+    open FSharp.Data.JsonExtensions
+    let weaver = RequestResponse.messageWeaver FsWebsocket.sendRequest
+
+    let startCommunication () =
+        async { do! FsWebsocket.start weaver }
+
+
     let getUnionCaseName (x:'a) = 
         match FSharpValue.GetUnionFields(x, typeof<'a>) with
         | case, _ -> case.Name
@@ -90,30 +173,41 @@ module OBS =
 
     let getSceneListRequest () = requestFromType GetSceneList
     
-    let sendRequest request =
-        request |> serialiseRequest |> FsWebsocket.sendRequest
-    
+    let request request (continuation: string -> Async<_>) =
+        let id = request.messageId
+        let receiver response =
+            async {
+                return! continuation response
+            }
+        weaver.Post (Send (MessageId id, request |> serialiseRequest, receiver))
+
     let exceptionToResult func =
         try
-            Ok (func ())
+            Result.Ok (func ())
         with
-        | _ as ex -> Error (ex.Message) 
+        | _ as ex -> Result.Error (ex.Message) 
 
     let authenticateFromChallenge (_password : string option) (challenge: string) =
         let response = (fun () -> AuthChallenge.Parse(challenge)) |> exceptionToResult
         response |> Result.bind(fun unwrapped ->
             match unwrapped.AuthRequired with 
-            | false -> Ok ()
-            | true -> Error "We don't yet support auth.")
+            | false -> Result.Ok ()
+            | true -> Result.Error "We don't yet support auth.")
      
     let authenticate (password : string option) =
-        async {
-            let! challenge = authRequiredRequest () |> sendRequest
-            return challenge |> authenticateFromChallenge password
-        }
+        request (authRequiredRequest ()) <| fun response ->
+            async {
+                let _result = response |> authenticateFromChallenge password
+                return ()
+            }
 
-    let getSceneList () =
-        async {
-            let! response = getSceneListRequest () |> sendRequest
-            return response
-        }
+    let getSceneList (callback) =
+        request (getSceneListRequest ()) <| fun response ->
+            async {
+                let parsed = JsonValue.Parse(response)
+                let scenes = parsed?scenes
+                return! scenes.AsArray ()
+                |> Array.toList
+                |> List.map (fun jsarray -> jsarray?name.AsString())
+                |> callback
+            }
