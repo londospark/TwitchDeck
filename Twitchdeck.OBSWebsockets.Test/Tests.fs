@@ -5,13 +5,21 @@ open Xunit
 open Twitchdeck.OBSWebsockets
 open FsUnit.Xunit
 open FsCheck.Xunit
-open FSharp.Data
 
 [<Property>]
 let ``Serialisation of a GetAuthRequired request should work`` (id : Guid) =
     let request = { requestType = GetAuthRequired ; messageId = id }
     let expected =
-        sprintf """{"request-type":"GetAuthRequired","message-id":"%s"}""" (id |> string)
+        sprintf """{"message-id":"%s","request-type":"GetAuthRequired"}""" (id |> string)
+
+    OBS.serialiseRequest request
+    |> should equal expected
+
+[<Property>]
+let ``Serialisation of a SetCurrentScene request should work`` (id : Guid) =
+    let request = { requestType = SetCurrentScene "Scene 1" ; messageId = id }
+    let expected =
+        sprintf """{"message-id":"%s","request-type":"SetCurrentScene","scene-name":"Scene 1"}""" (id |> string)
 
     OBS.serialiseRequest request
     |> should equal expected

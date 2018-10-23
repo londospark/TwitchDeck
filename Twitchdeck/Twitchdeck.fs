@@ -27,17 +27,14 @@ module Views =
 
 module App = 
     open Twitchdeck.OBSWebsockets
-    open System
 
     type Model = {
         SceneNames: string list
         SelectedScene: string
     }
-
+    
     type Msg =
-        | Scenes of string list
-        | Add of string
-        | Remove of string
+        | UpdateScenes of string * string list
         | SelectScene of string
     
     let setup dispatch =
@@ -45,24 +42,26 @@ module App =
             do! OBS.startCommunication ()
             OBS.getSceneList <|
                 fun scenes ->
-                    dispatch (Scenes scenes)
+                    dispatch (UpdateScenes scenes)
                     async.Zero ()
         } |> Async.RunSynchronously
 
     let init () = { SceneNames = []; SelectedScene = "" }, Cmd.ofSub setup
 
+    let changeSceneTo sceneName model =
+        OBS.setCurrentScene sceneName
+        { model with SelectedScene = sceneName }
+
     let update msg model =
         match msg with
-        | Add name -> model, Cmd.none
-        | Remove name -> model, Cmd.none
-        | SelectScene name -> { model with SelectedScene = name }, Cmd.none
-        | Scenes scenes -> { model with SceneNames = scenes }, Cmd.none
+        | UpdateScenes (scene, scenes) -> { model with SceneNames = scenes; SelectedScene = scene }, Cmd.none
+        | SelectScene name -> model |> changeSceneTo name, Cmd.none
 
     let view (model: Model) (dispatch: Msg -> unit) =
         if model.SceneNames.Length = 0 then
             Views.noScenes
         else // Look into this from an architecture standpoint.
-            Views.scenes model.SceneNames model.SelectedScene (fun name () -> dispatch (SelectScene name))
+            Views.scenes model.SceneNames model.SelectedScene (fun name () -> dispatch <| SelectScene name)
             
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view

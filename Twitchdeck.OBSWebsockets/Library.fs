@@ -8,11 +8,7 @@ open Chiron.Operators
 type RequestType =
     | GetAuthRequired
     | GetSceneList
-
-type JsonRequest = {
-    ``request-type`` : string
-    ``message-id`` : Guid
-}
+    | SetCurrentScene of string
 
 type Request = {
     requestType : RequestType
@@ -160,11 +156,14 @@ module OBS =
         | case, _ -> case.Name
 
     let serialiseRequest (request : Request) =
-        let request = {
-            ``request-type`` = request.requestType |> getUnionCaseName
-            ``message-id`` = request.messageId
-        }
-        JsonConvert.SerializeObject(request)
+        let requestMap =
+            [ ("request-type", request.requestType |> getUnionCaseName)
+              ("message-id", request.messageId.ToString()) ] |> Map.ofList
+
+        match request.requestType with
+        | SetCurrentScene sceneName -> requestMap |> Map.add "scene-name" sceneName
+        | _ -> requestMap
+        |> JsonConvert.SerializeObject
     
     let requestFromType type' =
         { requestType = type'; messageId = Guid.NewGuid() }
@@ -172,6 +171,8 @@ module OBS =
     let authRequiredRequest () = requestFromType GetAuthRequired
 
     let getSceneListRequest () = requestFromType GetSceneList
+
+    let setCurrentSceneRequest sceneName = requestFromType <| SetCurrentScene sceneName
     
     let request request (continuation: string -> Async<_>) =
         let id = request.messageId
@@ -206,8 +207,13 @@ module OBS =
             async {
                 let parsed = JsonValue.Parse(response)
                 let scenes = parsed?scenes
-                return! scenes.AsArray ()
-                |> Array.toList
-                |> List.map (fun jsarray -> jsarray?name.AsString())
-                |> callback
+                let currentScene = parsed?``current-scene``.AsString()
+                let sceneList =
+                    scenes.AsArray ()
+                    |> Array.toList
+                    |> List.map (fun jsarray -> jsarray?name.AsString())
+                return! (currentScene, sceneList) |> callback
             }
+
+    let setCurrentScene (sceneName: string) =
+        request (setCurrentSceneRequest sceneName) <| fun _response -> async.Return( () )

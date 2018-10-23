@@ -2,6 +2,7 @@
 
 open System.Drawing
 open Xamarin.Forms
+open Fabulous.Core
 
 open Xunit
 open FsUnit.Xunit
@@ -101,4 +102,9 @@ let ``When we press a button it executes the command passed to it`` () =
     messagesReceived |> should contain (SelectScene "Scene 1")
     messagesReceived |> should contain (SelectScene "Scene 2")
 
+[<Fact>]
+let ``When we receive scenes as a message then the scenes get populated correctly`` () =
+    let model = { SceneNames = []; SelectedScene = ""}
 
+    Twitchdeck.App.update (UpdateScenes ("Scene B", ["Scene A"; "Scene B"])) model
+    |> should equal ({ SceneNames = ["Scene A"; "Scene B"]; SelectedScene = "Scene B"}, Cmd.none)
