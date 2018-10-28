@@ -220,10 +220,10 @@
       <HintPath>..\packages\Chiron.6.3.1\lib\netstandard2.0\Chiron.dll</HintPath>
     </Reference>
     <Reference Include="Fabulous.Core">
-      <HintPath>..\packages\Fabulous.Core.0.24.0\lib\netstandard2.0\Fabulous.Core.dll</HintPath>
+      <HintPath>..\packages\Fabulous.Core.0.25.0\lib\netstandard2.0\Fabulous.Core.dll</HintPath>
     </Reference>
     <Reference Include="Fabulous.LiveUpdate">
-      <HintPath>..\packages\Fabulous.LiveUpdate.0.24.0\lib\netstandard2.0\Fabulous.LiveUpdate.dll</HintPath>
+      <HintPath>..\packages\Fabulous.LiveUpdate.0.25.0\lib\netstandard2.0\Fabulous.LiveUpdate.dll</HintPath>
     </Reference>
     <Reference Include="FParsec">
       <HintPath>..\packages\FParsec.1.0.3\lib\netstandard1.6\FParsec.dll</HintPath>

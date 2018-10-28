@@ -21,6 +21,24 @@ type Response =
         fun id ->
           { responseId = id |> Guid.Parse }
     <!> Json.read "message-id"
+
+type Event = 
+    { updateType : string }
+    static member FromJson (_:Event) =
+        fun eventName ->
+          { updateType = eventName  }
+    <!> Json.read "update-type"
+
+type SwitchSceneEvent =
+    { scene : string }
+    static member FromJson (_:SwitchSceneEvent) =
+        fun sceneName ->
+          { scene = sceneName }
+    <!> Json.read "scene-name"
+
+//TODO: Migrate from the type provider?
+//TODO: Support Auth
+//TODO: Support IP address config.
 type AuthChallenge = JsonProvider<"""
 [{
     "authRequired": true,
@@ -38,17 +56,20 @@ type AuthChallenge = JsonProvider<"""
 module RequestResponse =
 
     type MessageId = MessageId of Guid
+    type ReceivedEvent = ReceivedEvent of string
 
     type Weave =
         // Could this also be a request?
         | Send of MessageId * string * (string -> Async<unit>)
         | Receive of MessageId * string
-        | Event // Sent by OBS
+        | Register of ReceivedEvent * (string -> Async<unit>)
+        | Event of ReceivedEvent * string // Sent by OBS
+        | Unknown
         | Quit
 
     let messageWeaver sender =
         let start (processor: MailboxProcessor<_>) =
-            let rec loop callbacks =
+            let rec loop callbacks (events: Map<ReceivedEvent, string -> Async<unit>>) =
                 async {
                     let! token = Async.CancellationToken
                     let! message = processor.Receive ()
@@ -60,7 +81,7 @@ module RequestResponse =
                                 failwithf "There's already a receiver defined for '%A'" messageId
                             async {
                                 do! request |> sender token
-                                return! loop (callbacks |> Map.add messageId receiver)
+                                return! loop (callbacks |> Map.add messageId receiver) events
                             }
                         | Receive (messageId, response) ->
                             match callbacks |> Map.tryFind messageId with
@@ -68,13 +89,21 @@ module RequestResponse =
                             | Some callback -> 
                                 async {
                                     do! callback response
-                                    return! loop (callbacks |> Map.remove messageId)
+                                    return! loop (callbacks |> Map.remove messageId) events
                                 }
-                        | Event -> loop callbacks
+                        | Event (event, json) ->
+                            events
+                            |> Map.filter (fun item _callback -> item = event)
+                            |> Map.toSeq
+                            |> Seq.iter (fun (_eventName, callback) -> (callback json) |> Async.Start)
+                            loop callbacks events
+                        | Unknown -> loop callbacks events
+                        | Register (event, callback) ->
+                            loop callbacks (events |> Map.add event callback)
                         | Quit -> async.Return ()
                     return! continuation
                 }
-            loop Map.empty
+            loop Map.empty Map.empty
         MailboxProcessor.Start start
 
 
@@ -87,11 +116,17 @@ module FsWebsocket =
 
     let client = new ClientWebSocket()
 
+
+    //TODO: Can we try to deserialise into Event or Response with Chiron?
     let weaveFrom (json: string) =
         let parsed : Choice<Response, string> = json |> Json.parse |> Json.tryDeserialize
         match parsed with
         | Choice1Of2 { responseId = id } -> Receive ((MessageId id), json)
-        | Choice2Of2 _ -> Event
+        | Choice2Of2 _errorMessage ->
+            let parsedEvent : Choice<Event, string> = json |> Json.parse |> Json.tryDeserialize
+            match parsedEvent with
+            | Choice1Of2 { updateType = eventName } -> Event ((ReceivedEvent eventName), json)
+            | Choice2Of2 _errorMessage -> Unknown
         
     let receive (weaver: MailboxProcessor<Weave>) =
         let receiveBuffer = Array.create 8 0uy
@@ -217,3 +252,16 @@ module OBS =
 
     let setCurrentScene (sceneName: string) =
         request (setCurrentSceneRequest sceneName) <| fun _response -> async.Return( () )
+    
+    let registerEvent name callback =
+        weaver.Post <| Register (ReceivedEvent name, callback)
+    
+    //TODO: Some error handling please.
+    let switchSceneCallback callback json =
+        let parsed : Choice<SwitchSceneEvent, string> = json |> Json.parse |> Json.tryDeserialize
+        match parsed with
+        | Choice1Of2 event -> callback event
+        | Choice2Of2 _error -> async.Return ()
+
+    let registerSwitchScene callback =
+        registerEvent "SwitchScenes" (switchSceneCallback callback)

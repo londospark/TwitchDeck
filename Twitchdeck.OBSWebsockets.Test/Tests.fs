@@ -5,6 +5,8 @@ open Xunit
 open Twitchdeck.OBSWebsockets
 open FsUnit.Xunit
 open FsCheck.Xunit
+open Twitchdeck.OBSWebsockets
+open Twitchdeck.OBSWebsockets.RequestResponse
 
 [<Property>]
 let ``Serialisation of a GetAuthRequired request should work`` (id : Guid) =

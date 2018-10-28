@@ -33,9 +33,11 @@ module App =
         SelectedScene: string
     }
     
+    //TODO: Strong typing of scenes?
     type Msg =
         | UpdateScenes of string * string list
         | SelectScene of string
+        | SceneChanged of string
     
     let setup dispatch =
         async {
@@ -45,7 +47,12 @@ module App =
                     dispatch (UpdateScenes scenes)
                     async.Zero ()
         } |> Async.RunSynchronously
-
+        OBS.registerSwitchScene <|
+            fun event ->
+                async {
+                    dispatch (SceneChanged event.scene)
+                }
+                
     let init () = { SceneNames = []; SelectedScene = "" }, Cmd.ofSub setup
 
     let changeSceneTo sceneName model =
@@ -56,6 +63,7 @@ module App =
         match msg with
         | UpdateScenes (scene, scenes) -> { model with SceneNames = scenes; SelectedScene = scene }, Cmd.none
         | SelectScene name -> model |> changeSceneTo name, Cmd.none
+        | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
 
     let view (model: Model) (dispatch: Msg -> unit) =
         if model.SceneNames.Length = 0 then

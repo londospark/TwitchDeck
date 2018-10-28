@@ -42,6 +42,9 @@
     <AotAssemblies>false</AotAssemblies>
     <EnableLLVM>false</EnableLLVM>
     <BundleAssemblies>false</BundleAssemblies>
+    <AndroidSupportedAbis />
+    <EmbedAssembliesIntoApk>false</EmbedAssembliesIntoApk>
+    <EnableProguard>false</EnableProguard>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -144,10 +147,10 @@
       <HintPath>..\packages\Chiron.6.3.1\lib\netstandard2.0\Chiron.dll</HintPath>
     </Reference>
     <Reference Include="Fabulous.Core">
-      <HintPath>..\packages\Fabulous.Core.0.24.0\lib\netstandard2.0\Fabulous.Core.dll</HintPath>
+      <HintPath>..\packages\Fabulous.Core.0.25.0\lib\netstandard2.0\Fabulous.Core.dll</HintPath>
     </Reference>
     <Reference Include="Fabulous.LiveUpdate">
-      <HintPath>..\packages\Fabulous.LiveUpdate.0.24.0\lib\netstandard2.0\Fabulous.LiveUpdate.dll</HintPath>
+      <HintPath>..\packages\Fabulous.LiveUpdate.0.25.0\lib\netstandard2.0\Fabulous.LiveUpdate.dll</HintPath>
     </Reference>
     <Reference Include="FormsViewGroup">
       <HintPath>..\packages\Xamarin.Forms.3.3.0.912540\lib\MonoAndroid10\FormsViewGroup.dll</HintPath>
