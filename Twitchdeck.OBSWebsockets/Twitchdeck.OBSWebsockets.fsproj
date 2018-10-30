@@ -6,14 +6,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Library.fs" />
+    <Compile Include="JsonOperators.fs" />
+    <Compile Include="Dto.fs" />
+    <Compile Include="RequestResponse.fs" />
+    <Compile Include="FsWebsocket.fs" />
+    <Compile Include="OBS.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Chiron" Version="6.3.1" />
     <PackageReference Include="FsCheck.Xunit" Version="2.12.1" />
     <PackageReference Include="FSharp.Data" Version="3.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
   </ItemGroup>
 
