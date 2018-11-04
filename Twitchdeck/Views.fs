@@ -17,6 +17,7 @@ let noScenes =
 
 let scenes (names: string list) selectedScene selectSceneCommand =
     View.ContentPage(
+        title = "OBS Scenes",
         content = View.StackLayout(
                     automationId = "SceneButtonContainer",
                     children = [for name in names ->

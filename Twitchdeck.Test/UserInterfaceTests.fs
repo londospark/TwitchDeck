@@ -25,13 +25,13 @@ let getSceneButtonContainer rootView =
 [<Fact>]
 let ``With no specified scenes we should be displaying the no scenes view`` () =
     let model = { SceneNames = []; SelectedScene = ""; OBSConfig = OBSConfiguration }
-    Twitchdeck.App.view model ignore
+    Views.sceneView model ignore
     |> should equal Views.noScenes
 
 [<Fact>]
 let ``With a single scene defined we should see a single button`` () =
     let model = { SceneNames = ["Scene 1"]; SelectedScene = ""; OBSConfig = OBSConfiguration }
-    Twitchdeck.App.view model ignore
+    Views.sceneView model ignore
     |> getSceneButtonContainer
     |> descendents
     |> List.filter rendersAs<Xamarin.Forms.Button>
@@ -42,7 +42,7 @@ let ``With a single scene defined we should see a single button`` () =
 [<Property>]
 let ``The button for a single scene should have text matching the scene name`` (sceneName: string) =
     let model = { SceneNames = [sceneName]; SelectedScene = ""; OBSConfig = OBSConfiguration }
-    let button = Twitchdeck.App.view model ignore
+    let button = Views.sceneView model ignore
                 |> getSceneButtonContainer
                 |> descendents
                 |> List.find rendersAs<Xamarin.Forms.Button>
@@ -55,7 +55,7 @@ let ``For each scene in the model we get a button within the correct container``
     not sceneNames.IsEmpty ==>
         fun () ->
             let model = { SceneNames = sceneNames; SelectedScene = ""; OBSConfig = OBSConfiguration }
-            Twitchdeck.App.view model ignore
+            Views.sceneView model ignore
             |> getSceneButtonContainer
             |> descendents
             |> List.filter rendersAs<Xamarin.Forms.Button>
@@ -67,7 +67,7 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
     let model = { SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2"; OBSConfig = OBSConfiguration }
 
     let button =
-        Twitchdeck.App.view model ignore
+        Views.sceneView model ignore
         |> getSceneButtonContainer
         |> descendents
         |> List.filter rendersAs<Xamarin.Forms.Button>
@@ -90,7 +90,7 @@ let ``When we press a button it executes the command passed to it`` () =
 
     let mutable messagesReceived = []
 
-    Twitchdeck.App.view model (
+    Views.sceneView model (
         fun message ->
             messagesReceived <- message :: messagesReceived )
     |> descendentsAndSelf

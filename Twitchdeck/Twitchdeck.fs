@@ -2,6 +2,7 @@
 
 open System.Diagnostics
 open Fabulous.Core
+open Fabulous.DynamicViews
 open Xamarin.Forms
 
 module App = 
@@ -40,7 +41,11 @@ module App =
         | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
 
     let view (model: Model) (dispatch: Msg -> unit) =
-        Views.sceneView model dispatch
+        View.TabbedPage(
+            children=[
+                View.ContentPage(title="Setup")
+                Views.sceneView model dispatch
+            ])
 
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view
