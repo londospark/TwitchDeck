@@ -43,7 +43,7 @@ module App =
     let view (model: Model) (dispatch: Msg -> unit) =
         View.TabbedPage(
             children=[
-                View.ContentPage(title="Setup")
+                Views.options model
                 Views.sceneView model dispatch
             ])
 

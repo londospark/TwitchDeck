@@ -4,6 +4,17 @@ open Twitchdeck.Domain
 open Fabulous.DynamicViews
 open Xamarin.Forms
 
+let options (model: Model) =
+    View.ContentPage(
+        title = "Options",
+        content =
+            View.StackLayout(
+                children=[
+                    yield match model.OBSConfig with
+                          | Configuration _ -> View.Button(text="Modify OBS Setup", automationId="modify")
+                          | NotConfigured -> View.Button(text="Setup OBS", automationId="setup")
+                ]))
+
 let sceneButton name selected command =
     let color = if selected then (Color.FromHex "#33B2FF") else Color.Default
     View.Button(

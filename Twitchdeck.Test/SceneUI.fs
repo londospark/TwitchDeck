@@ -1,4 +1,4 @@
-﻿module UserInterface
+﻿module SceneUI
 
 open System.Drawing
 open Xamarin.Forms

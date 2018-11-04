@@ -11,7 +11,8 @@
   <ItemGroup>
     <Compile Include="TestHelpers.fs" />
     <Compile Include="TestHeplerTests.fs" />
-    <Compile Include="UserInterfaceTests.fs" />
+    <Compile Include="SceneUI.fs" />
+    <Compile Include="SetupUI.fs" />
   </ItemGroup>
 
   <ItemGroup>
