@@ -1,33 +1,11 @@
-﻿// Copyright 2018 Fabulous contributors. See LICENSE.md for license.
-namespace Twitchdeck
+﻿namespace Twitchdeck
 
 open System.Diagnostics
 open Fabulous.Core
 open Fabulous.DynamicViews
 open Xamarin.Forms
 
-module Views =
-    let sceneButton name selected command =
-        let color = if selected then (Color.FromHex "#33B2FF") else Color.Default
-        View.Button(
-            text = name,
-            verticalOptions = LayoutOptions.FillAndExpand,
-            backgroundColor = color,
-            command = command)
-
-    let noScenes =
-        View.ContentPage(content = View.Label(text="There are no scenes defined."))
-
-    let scenes (names: string list) selectedScene selectSceneCommand =
-        View.ContentPage(
-            content = View.StackLayout(
-                        automationId = "SceneButtonContainer",
-                        children = [for name in names ->
-                                        sceneButton name (name = selectedScene) (selectSceneCommand name)]))
-
-module App = 
-    open Twitchdeck.OBSWebsockets
-
+module Domain =
     type ServiceConfig<'a> =
         | Configuration of 'a
         | NotConfigured
@@ -50,6 +28,37 @@ module App =
         | SelectScene of string
         | SceneChanged of string
     
+
+module Views =
+    open Domain
+    let sceneButton name selected command =
+        let color = if selected then (Color.FromHex "#33B2FF") else Color.Default
+        View.Button(
+            text = name,
+            verticalOptions = LayoutOptions.FillAndExpand,
+            backgroundColor = color,
+            command = command)
+
+    let noScenes =
+        View.ContentPage(content = View.Label(text="There are no scenes defined."))
+
+    let scenes (names: string list) selectedScene selectSceneCommand =
+        View.ContentPage(
+            content = View.StackLayout(
+                        automationId = "SceneButtonContainer",
+                        children = [for name in names ->
+                                        sceneButton name (name = selectedScene) (selectSceneCommand name)]))
+
+    let sceneView (model: Domain.Model) dispatcher =
+        if model.SceneNames.Length = 0 then
+            noScenes
+        else // Look into this from an architecture standpoint.
+            scenes model.SceneNames model.SelectedScene (fun name () -> dispatcher <| SelectScene name)
+
+module App = 
+    open Twitchdeck.OBSWebsockets
+    open Domain
+        
     let setup dispatch =
         async {
             do! OBS.startCommunication ()
@@ -82,11 +91,8 @@ module App =
         | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
 
     let view (model: Model) (dispatch: Msg -> unit) =
-        if model.SceneNames.Length = 0 then
-            Views.noScenes
-        else // Look into this from an architecture standpoint.
-            Views.scenes model.SceneNames model.SelectedScene (fun name () -> dispatch <| SelectScene name)
-            
+        Views.sceneView model dispatch
+
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view
 

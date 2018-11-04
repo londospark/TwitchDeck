@@ -12,7 +12,7 @@ open FsCheck.Xunit
 
 open TestHelpers
 
-open Twitchdeck.App
+open Twitchdeck.Domain
 open Twitchdeck
 
 let OBSConfiguration = Configuration { IPAddress = "not-applicable"; Port = 8080; Password = None }
