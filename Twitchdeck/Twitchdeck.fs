@@ -10,18 +10,26 @@ module App =
     open Domain
         
     let setup dispatch =
+        Debug.Print "Begin setup."
         async {
+            let context = System.Threading.SynchronizationContext.Current
+            do! Async.SwitchToThreadPool()
             do! OBS.startCommunication ()
             OBS.getSceneList <|
                 fun scenes ->
-                    dispatch (UpdateScenes scenes)
-                    async.Zero ()
-        } |> Async.RunSynchronously
-        OBS.registerSwitchScene <|
-            fun event ->
-                async {
-                    dispatch (SceneChanged event.scene)
-                }
+                    async {
+                        do! Async.SwitchToContext(context)
+                        dispatch (UpdateScenes scenes)
+                        Debug.Print "Got Scenes."
+                    }
+            
+            OBS.registerSwitchScene <|
+                fun event ->
+                    async {
+                        do! Async.SwitchToContext(context)
+                        dispatch (SceneChanged event.scene)
+                    }
+        } |> Async.StartImmediate
                 
     let init () =
         {

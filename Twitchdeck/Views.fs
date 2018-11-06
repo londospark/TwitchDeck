@@ -24,7 +24,9 @@ let sceneButton name selected command =
         command = command)
 
 let noScenes =
-    View.ContentPage(content = View.Label(text="There are no scenes defined."))
+    View.ContentPage(
+        title="OBS Scenes",
+        content = View.Label(text="There are no scenes defined."))
 
 let scenes (names: string list) selectedScene selectSceneCommand =
     View.ContentPage(
