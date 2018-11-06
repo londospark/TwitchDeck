@@ -17,6 +17,12 @@ open Twitchdeck
 
 let OBSConfiguration = Configuration { IPAddress = "not-applicable"; Port = 8080; Password = None }
 
+let sampleModel =
+    { SceneNames = []
+      SelectedScene = ""
+      OBSConfig = OBSConfiguration
+      dynamicOBSConfig = Map.empty }
+
 let getSceneButtonContainer rootView =
     match rootView |> tryFindElementById "SceneButtonContainer" with
     | Some element -> element
@@ -24,13 +30,13 @@ let getSceneButtonContainer rootView =
 
 [<Fact>]
 let ``With no specified scenes we should be displaying the no scenes view`` () =
-    let model = { SceneNames = []; SelectedScene = ""; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with SceneNames = []; SelectedScene = "" }
     Views.sceneView model ignore
     |> should equal Views.noScenes
 
 [<Fact>]
 let ``With a single scene defined we should see a single button`` () =
-    let model = { SceneNames = ["Scene 1"]; SelectedScene = ""; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with SceneNames = ["Scene 1"]; SelectedScene = "" }
     Views.sceneView model ignore
     |> getSceneButtonContainer
     |> descendents
@@ -41,7 +47,7 @@ let ``With a single scene defined we should see a single button`` () =
 
 [<Property>]
 let ``The button for a single scene should have text matching the scene name`` (sceneName: string) =
-    let model = { SceneNames = [sceneName]; SelectedScene = ""; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with  SceneNames = [sceneName]; SelectedScene = "" }
     let button = Views.sceneView model ignore
                 |> getSceneButtonContainer
                 |> descendents
@@ -54,7 +60,7 @@ let ``The button for a single scene should have text matching the scene name`` (
 let ``For each scene in the model we get a button within the correct container`` (sceneNames: string list) =
     not sceneNames.IsEmpty ==>
         fun () ->
-            let model = { SceneNames = sceneNames; SelectedScene = ""; OBSConfig = OBSConfiguration }
+            let model = { sampleModel with SceneNames = sceneNames; SelectedScene = "" }
             Views.sceneView model ignore
             |> getSceneButtonContainer
             |> descendents
@@ -64,7 +70,7 @@ let ``For each scene in the model we get a button within the correct container``
 
 [<Fact>]
 let ``When a scene is selected then the relevant button should be highlighted`` () =
-    let model = { SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2"; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2" }
 
     let button =
         Views.sceneView model ignore
@@ -76,9 +82,9 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
 
     button.BackgroundColor |> should equal (Color.FromHex "#33B2FF")
 
-[<Fact>]
+[<Fact>] //TODO: Gareth - this test is dishonest!
 let ``When we send a SelectScene message, the relavent button becomes highlighted`` () =
-    let model = { SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = ""; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "" }
 
     let (model, _command) = Twitchdeck.App.update (Msg.SelectScene "Scene 1") model
     model.SelectedScene |> should equal "Scene 1"
@@ -86,7 +92,7 @@ let ``When we send a SelectScene message, the relavent button becomes highlighte
 
 [<Fact>]
 let ``When we press a button it executes the command passed to it`` () =
-    let model = { SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2"; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2" }
 
     let mutable messagesReceived = []
 
@@ -106,7 +112,7 @@ let ``When we press a button it executes the command passed to it`` () =
 
 [<Fact>]
 let ``When we receive scenes as a message then the scenes get populated correctly`` () =
-    let model = { SceneNames = []; SelectedScene = ""; OBSConfig = OBSConfiguration }
+    let model = { sampleModel with SceneNames = []; SelectedScene = "" }
 
     Twitchdeck.App.update (UpdateScenes ("Scene B", ["Scene A"; "Scene B"])) model
-    |> should equal ({ SceneNames = ["Scene A"; "Scene B"]; SelectedScene = "Scene B"; OBSConfig = OBSConfiguration }, Cmd.none)
+    |> should equal ({ sampleModel with SceneNames = ["Scene A"; "Scene B"]; SelectedScene = "Scene B" }, Cmd.none)

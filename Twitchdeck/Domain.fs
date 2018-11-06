@@ -14,10 +14,16 @@ type Model = {
     SceneNames: string list
     SelectedScene: string
     OBSConfig: ServiceConfig<OBSConfiguration>
+    dynamicOBSConfig: Map<string, string>
 }
 
 //TODO: Strong typing of scenes?
 type Msg =
+    // OBS Config
+    | SetOBSConfig of OBSConfiguration
+    | OBSConfigUpdate of string * string
+
+    // OBS Usage
     | UpdateScenes of string * string list
     | SelectScene of string
     | SceneChanged of string

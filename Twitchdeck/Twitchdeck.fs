@@ -10,25 +10,16 @@ module App =
     open Domain
         
     let setup dispatch =
-        Debug.Print "Begin setup."
         async {
-            let context = System.Threading.SynchronizationContext.Current
-            do! Async.SwitchToThreadPool()
             do! OBS.startCommunication ()
             OBS.getSceneList <|
                 fun scenes ->
-                    async {
-                        do! Async.SwitchToContext(context)
-                        dispatch (UpdateScenes scenes)
-                        Debug.Print "Got Scenes."
-                    }
+                    async { dispatch (UpdateScenes scenes) }
             
             OBS.registerSwitchScene <|
                 fun event ->
-                    async {
-                        do! Async.SwitchToContext(context)
-                        dispatch (SceneChanged event.scene)
-                    }
+                    async { dispatch (SceneChanged event.scene) }
+
         } |> Async.StartImmediate
                 
     let init () =
@@ -36,6 +27,7 @@ module App =
             SceneNames = [];
             SelectedScene = ""
             OBSConfig = NotConfigured
+            dynamicOBSConfig = Map.empty
         }, Cmd.ofSub setup
 
     let changeSceneTo sceneName model =
@@ -47,11 +39,13 @@ module App =
         | UpdateScenes (scene, scenes) -> { model with SceneNames = scenes; SelectedScene = scene }, Cmd.none
         | SelectScene name -> model |> changeSceneTo name, Cmd.none
         | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
+        | SetOBSConfig config ->  { model with OBSConfig = Configuration config }, Cmd.none
+        | OBSConfigUpdate (key, value) -> { model with dynamicOBSConfig = model.dynamicOBSConfig |> Map.add key value }, Cmd.none
 
     let view (model: Model) (dispatch: Msg -> unit) =
         View.TabbedPage(
             children=[
-                Views.options model
+                Views.options model dispatch
                 Views.sceneView model dispatch
             ])
 
