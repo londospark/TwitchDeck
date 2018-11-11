@@ -3,8 +3,6 @@
 open Twitchdeck.Domain
 open Fabulous.DynamicViews
 open Xamarin.Forms
-open System.ComponentModel
-open Twitchdeck.OBSWebsockets
 
 let optionsMenu (model: Model) =
     View.ContentPage(
@@ -13,8 +11,8 @@ let optionsMenu (model: Model) =
             View.StackLayout(
                 children=[
                     yield match model.OBSConfig with
-                          | Configuration _ -> View.Button(text="Modify OBS Setup")
-                          | NotConfigured -> View.Button(text="Setup OBS")
+                          | Configuration _ -> View.Button(text="Modify OBS Setup", automationId="obs-setup-button")
+                          | NotConfigured -> View.Button(text="Setup OBS", automationId="obs-setup-button")
                 ]))
 let obsDetail (model: Model) dispatcher =
     let currentServer =

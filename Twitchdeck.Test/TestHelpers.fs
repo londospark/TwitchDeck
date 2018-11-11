@@ -14,6 +14,12 @@ let tryGetAttr<'T> name (parent : ViewElement) =
     | ValueSome x -> Some x
     | ValueNone -> None
 
+//TODO: Gareth - make this go bang with a nicer error message.
+let getAttr name (parent : ViewElement) = 
+    let attr = parent.Attributes |> Array.find (fun kvp -> kvp.Key = name)
+    attr.Value
+    
+
 //TODO: Gareth - Test this in the TestHelperTests.
 let rec descendentsAndSelf (view: ViewElement) : ViewElement list =
 
