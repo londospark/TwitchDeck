@@ -6,6 +6,7 @@ open UIKit
 open Foundation
 open Xamarin.Forms
 open Xamarin.Forms.Platform.iOS
+open System.Diagnostics
 
 [<Register ("AppDelegate")>]
 type AppDelegate () =
@@ -20,6 +21,10 @@ type AppDelegate () =
 module Main =
     [<EntryPoint>]
     let main args =
-        UIApplication.Main(args, null, "AppDelegate")
-        0
-
+        try 
+            UIApplication.Main(args, null, "AppDelegate")
+            0
+        with
+        | ex ->
+            Debug.WriteLine(ex.Message)
+            reraise ()
