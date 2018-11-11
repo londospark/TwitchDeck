@@ -16,16 +16,20 @@ open Xamarin.Forms.Platform.Android
 type MainActivity() =
     inherit FormsAppCompatActivity()
     override this.OnCreate (bundle: Bundle) =
-        FormsAppCompatActivity.TabLayoutResource <- Resources.Layout.Tabbar
-        FormsAppCompatActivity.ToolbarResource <- Resources.Layout.Toolbar
-        base.OnCreate (bundle)
+        try
+            FormsAppCompatActivity.TabLayoutResource <- Resources.Layout.Tabbar
+            FormsAppCompatActivity.ToolbarResource <- Resources.Layout.Toolbar
+            base.OnCreate (bundle)
 
-        Xamarin.Essentials.Platform.Init(this, bundle)
+            Xamarin.Essentials.Platform.Init(this, bundle)
 
-        Xamarin.Forms.Forms.Init (this, bundle)
+            Xamarin.Forms.Forms.Init (this, bundle)
 
-        let appcore  = new Twitchdeck.App()
-        this.LoadApplication (appcore)
+            let appcore  = new Twitchdeck.App()
+            this.LoadApplication (appcore)
+        with
+        | ex -> System.Diagnostics.Debug.WriteLine(ex.Message)
+                reraise ()
 
     override this.OnRequestPermissionsResult(requestCode: int, permissions: string[], [<GeneratedEnum>] grantResults: Android.Content.PM.Permission[]) =
         Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults)

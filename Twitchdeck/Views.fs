@@ -13,8 +13,8 @@ let optionsMenu (model: Model) =
             View.StackLayout(
                 children=[
                     yield match model.OBSConfig with
-                          | Configuration _ -> View.Button(text="Modify OBS Setup", automationId="modify")
-                          | NotConfigured -> View.Button(text="Setup OBS", automationId="setup")
+                          | Configuration _ -> View.Button(text="Modify OBS Setup")
+                          | NotConfigured -> View.Button(text="Setup OBS")
                 ]))
 let obsDetail (model: Model) dispatcher =
     let currentServer =

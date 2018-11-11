@@ -6,6 +6,7 @@ open System.Text
 open RequestResponse
 open Twitchdeck.OBSWebsockets.Dto
 open System
+open System.Threading.Tasks
 
 let client = new ClientWebSocket()
 
@@ -47,6 +48,15 @@ let receive (weaver: MailboxProcessor<Weave>) =
         loop client receiveSegment token
     MailboxProcessor.Start start
     
+//TODO: Gareth - This is a very very bad practicey thing to do!
+let fireAndForget (fn : Task) =
+    async {
+        try
+            do! fn |> Async.AwaitTask
+        with
+        | :? AggregateException as agg ->
+            System.Diagnostics.Debug.WriteLine(agg.Message)
+    }
 
 let sendRequest token (message : string) =
     async { 
@@ -54,13 +64,12 @@ let sendRequest token (message : string) =
         
         let buffer = message |> encoding.GetBytes
         let bufferSegment = new ArraySegment<byte>(buffer)
-        
-        do! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> Async.AwaitTask
+        do! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> fireAndForget 
     }
 
 let start weaver =
     async {
-        let! token = Async.CancellationToken 
-        do! client.ConnectAsync(new Uri("ws://192.168.1.100:4444"), token) |> Async.AwaitTask
+        let! token = Async.CancellationToken
+        do! client.ConnectAsync(new Uri("ws://192.168.1.100:4444"), token) |> fireAndForget
         receive weaver |> ignore
     }
