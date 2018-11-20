@@ -11,8 +11,11 @@ module OBS =
 
     let weaver = RequestResponse.messageWeaver FsWebsocket.sendRequest
 
-    let startCommunication () =
-        async { do! FsWebsocket.start weaver }
+    let startCommunication server port =
+        async {
+            weaver.Post Flush
+            do! FsWebsocket.connectTo weaver server port
+        }
     
     let requestFromType type' =
         { requestType = type'; messageId = Guid.NewGuid() }

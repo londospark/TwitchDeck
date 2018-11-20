@@ -8,7 +8,8 @@ open Twitchdeck.OBSWebsockets.Dto
 open System
 open System.Threading.Tasks
 
-let client = new ClientWebSocket()
+//I'm sorry - please don't think any less of me :(
+let mutable client = new ClientWebSocket()
 
 //TODO: Can we try to deserialise into Event or Response with Chiron?
 let weaveFrom (json: string) =
@@ -19,7 +20,7 @@ let weaveFrom (json: string) =
     | Result.Error _errorMessage -> Weave.Unknown
     
 let receive (weaver: MailboxProcessor<Weave>) =
-    let receiveBuffer = Array.create 8 0uy
+    let receiveBuffer = Array.create 255 0uy
     let receiveSegment = new ArraySegment<byte>(receiveBuffer)
     let token = Async.CancellationToken |> Async.RunSynchronously
     let start (_processor: MailboxProcessor<_>) =
@@ -49,13 +50,13 @@ let receive (weaver: MailboxProcessor<Weave>) =
     MailboxProcessor.Start start
     
 //TODO: Gareth - This is a very very bad practicey thing to do!
-let fireAndForget (fn : Task) =
+let fireAndForget (fn : Task)  =
     async {
         try
             do! fn |> Async.AwaitTask
         with
-        | :? AggregateException as agg ->
-            System.Diagnostics.Debug.WriteLine(agg.Message)
+        | err ->
+            System.Diagnostics.Debug.WriteLine(err.Message)
     }
 
 let sendRequest token (message : string) =
@@ -64,12 +65,21 @@ let sendRequest token (message : string) =
         
         let buffer = message |> encoding.GetBytes
         let bufferSegment = new ArraySegment<byte>(buffer)
-        do! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> fireAndForget 
+        if client.State = WebSocketState.Open then
+            do! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> fireAndForget 
     }
 
-let start weaver =
+//TODO: Gareth - Did we connect or not?
+let connectTo weaver server port =
     async {
+        client.Dispose()
+        client <- new ClientWebSocket();
+
         let! token = Async.CancellationToken
-        do! client.ConnectAsync(new Uri("ws://192.168.1.100:4444"), token) |> fireAndForget
-        receive weaver |> ignore
+        let uriString = sprintf "ws://%s:%d" server port
+        if Uri.IsWellFormedUriString(uriString, UriKind.Absolute) then
+            let task = client.ConnectAsync(new Uri(uriString), token)
+            do! task |> fireAndForget
+            receive weaver |> ignore
     }
+

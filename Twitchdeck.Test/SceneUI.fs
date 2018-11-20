@@ -115,4 +115,5 @@ let ``When we receive scenes as a message then the scenes get populated correctl
     let model = { sampleModel with SceneNames = []; SelectedScene = "" }
 
     Twitchdeck.App.update (UpdateScenes ("Scene B", ["Scene A"; "Scene B"])) model
-    |> should equal ({ sampleModel with SceneNames = ["Scene A"; "Scene B"]; SelectedScene = "Scene B" }, Cmd.none)
+    |> fst 
+    |> should equal { sampleModel with SceneNames = ["Scene A"; "Scene B"]; SelectedScene = "Scene B" }

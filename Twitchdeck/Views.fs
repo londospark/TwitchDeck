@@ -3,6 +3,7 @@
 open Twitchdeck.Domain
 open Fabulous.DynamicViews
 open Xamarin.Forms
+open System
 
 let optionsMenu (model: Model) =
     View.ContentPage(
@@ -14,6 +15,7 @@ let optionsMenu (model: Model) =
                           | Configuration _ -> View.Button(text="Modify OBS Setup", automationId="obs-setup-button")
                           | NotConfigured -> View.Button(text="Setup OBS", automationId="obs-setup-button")
                 ]))
+
 let obsDetail (model: Model) dispatcher =
     let currentServer =
         match model.OBSConfig with
@@ -25,14 +27,52 @@ let obsDetail (model: Model) dispatcher =
         | Some s -> s
         | None -> ""
 
+    let currentPort =
+        match model.OBSConfig with
+        | Configuration obs -> obs.Port.ToString()
+        | NotConfigured -> ""
+    
+    let port =
+        match model.dynamicOBSConfig.TryFind "port" with
+        | Some s when Int32.TryParse(s) |> fst -> Int32.Parse(s)
+        | _ -> 4444
+
+    let currentPassword =
+        match model.OBSConfig with
+        | Configuration { Password = Some pass } -> pass
+        | _ -> ""
+    
+    let password =
+        match model.dynamicOBSConfig.TryFind "password" with
+        | Some s when not(System.String.IsNullOrEmpty(s)) -> Some s
+        | _ -> None
+
 
     let serverCell =
         View.EntryCell(label="Server: ",
                        text = currentServer,
                        automationId = "obs_server_address",
-                       completed=
-                           fun text ->
-                               dispatcher <| OBSConfigUpdate ("server", text))
+                       textChanged=
+                           fun args ->
+                               dispatcher <| OBSConfigUpdate ("server", args.NewTextValue))
+
+    let portCell =
+        View.EntryCell(label="Port: ",
+                       text = currentPort,
+                       automationId = "obs_server_port",
+                       keyboard=Keyboard.Numeric,
+                       textChanged=
+                           fun args ->
+                               dispatcher <| OBSConfigUpdate ("port", args.NewTextValue))
+
+    //TODO: Gareth - can we hide/show the password?
+    let passwordCell =
+        View.EntryCell(label="Password: ",
+                       text = currentPassword,
+                       automationId = "obs_password",
+                       textChanged=
+                           fun args ->
+                               dispatcher <| OBSConfigUpdate ("password", args.NewTextValue))
 
     View.ContentPage(
         content =
@@ -41,14 +81,13 @@ let obsDetail (model: Model) dispatcher =
                 items = [
                     ("OBS Config",
                         [ serverCell
-                          View.EntryCell(label="Port: ", keyboard=Keyboard.Numeric)
-                          //TODO: Gareth - can we hide/show the password?
-                          View.EntryCell(label="Password: ")
+                          portCell
+                          passwordCell
                           View.ViewCell(
                             view=
                                 View.Button(
                                     text="Update OBS Config",
-                                    command=(fun () -> dispatcher <| SetOBSConfig {IPAddress = server; Port = 4444; Password = None})))])
+                                    command=(fun () -> dispatcher <| SetOBSConfig {IPAddress = server; Port = port; Password = password})))])
                 ]
             )
     )

@@ -4,18 +4,29 @@ open System.Diagnostics
 open Fabulous.Core
 open Fabulous.DynamicViews
 open Xamarin.Forms
+open System
 
 module App = 
     open Twitchdeck.OBSWebsockets
     open Domain
-        
+
+    //TODO: Check that we can connect and handle errors
+    let connectToObs (config : OBSConfiguration) dispatch =
+        async {
+            do! OBS.startCommunication config.IPAddress config.Port
+
+            return OBS.getSceneList <|
+                fun scenes -> 
+                    async { dispatch (UpdateScenes scenes) }
+        } |> Async.StartImmediate
+    
+    let attemptExternalConnections (model : Domain.Model) dispatch =
+        match model.OBSConfig with
+        | Configuration config -> connectToObs config dispatch
+        | NotConfigured -> ()
+
     let setup dispatch =
         async {
-            do! OBS.startCommunication ()
-            OBS.getSceneList <|
-                fun scenes ->
-                    async { dispatch (UpdateScenes scenes) }
-            
             OBS.registerSwitchScene <|
                 fun event ->
                     async { dispatch (SceneChanged event.scene) }
@@ -39,7 +50,7 @@ module App =
         | UpdateScenes (scene, scenes) -> { model with SceneNames = scenes; SelectedScene = scene }, Cmd.none
         | SelectScene name -> model |> changeSceneTo name, Cmd.none
         | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
-        | SetOBSConfig config ->  { model with OBSConfig = Configuration config }, Cmd.none
+        | SetOBSConfig config ->  { model with OBSConfig = Configuration config }, Cmd.ofSub (connectToObs config)
         | OBSConfigUpdate (key, value) -> { model with dynamicOBSConfig = model.dynamicOBSConfig |> Map.add key value }, Cmd.none
 
     let view (model: Model) (dispatch: Msg -> unit) =
@@ -75,8 +86,8 @@ type App () as app =
 
     // Uncomment this code to save the application state to app.Properties using Newtonsoft.Json
     // See https://fsprojects.github.io/Fabulous/models.html for further  instructions.
-#if APPSAVE
-    let modelId = "model"
+
+    let modelId = "twitchdeck"
     override __.OnSleep() = 
 
         let json = Newtonsoft.Json.JsonConvert.SerializeObject(runner.CurrentModel)
@@ -91,10 +102,10 @@ type App () as app =
             | true, (:? string as json) -> 
 
                 Console.WriteLine("OnResume: restoring model from app.Properties, json = {0}", json)
-                let model = Newtonsoft.Json.JsonConvert.DeserializeObject<App.Model>(json)
+                let model = Newtonsoft.Json.JsonConvert.DeserializeObject<Domain.Model>(json)
 
                 Console.WriteLine("OnResume: restoring model from app.Properties, model = {0}", (sprintf "%0A" model))
-                runner.SetCurrentModel (model, Cmd.none)
+                runner.SetCurrentModel (model, Cmd.ofSub (App.attemptExternalConnections model))
 
             | _ -> ()
         with ex -> 
@@ -103,6 +114,6 @@ type App () as app =
     override this.OnStart() = 
         Console.WriteLine "OnStart: using same logic as OnResume()"
         this.OnResume()
-#endif
+
 
 

@@ -12,6 +12,7 @@ type Weave =
     | Register of ReceivedEvent * (string -> Async<unit>)
     | Event of ReceivedEvent * string // Sent by OBS
     | Unknown
+    | Flush
     | Quit
 
 let messageWeaver sender =
@@ -45,10 +46,22 @@ let messageWeaver sender =
                         |> Seq.iter (fun (_eventName, callback) -> (callback json) |> Async.Start)
                         loop callbacks events
                     | Unknown -> loop callbacks events
+                    | Flush -> 
+                        let rec flush (mbp: MailboxProcessor<_>) =
+                            if mbp.CurrentQueueLength > 0 then
+                                mbp.Receive() |> Async.RunSynchronously |> ignore
+                                flush mbp
+
+                        flush processor
+                        loop callbacks events
                     | Register (event, callback) ->
                         loop callbacks (events |> Map.add event callback)
                     | Quit -> async.Return ()
                 return! continuation
             }
         loop Map.empty Map.empty
-    MailboxProcessor.Start start
+    let proc = MailboxProcessor.Start start
+    proc.Error.Add(
+        fun err ->
+            printfn "[ERROR!!!!]: %A" err)
+    proc

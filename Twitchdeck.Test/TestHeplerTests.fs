@@ -20,8 +20,9 @@ let view =
 
 [<Fact>]
 let ``descendantsAndSelf returns the correct number of elements`` () =
-    let desc = view |> descendentsAndSelf
-    desc |> should haveLength 10
+    view
+    |> descendentsAndSelf
+    |> should haveLength 10
 
 [<Fact>]
 let ``descendants returns the correct number of elements`` () =
