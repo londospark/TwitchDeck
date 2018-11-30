@@ -27,8 +27,8 @@
     <RestorePackages>true</RestorePackages>
     <OtherFlags>/warnon:1182</OtherFlags>
     <WarningLevel>4</WarningLevel>
-    <SelectedDevice>HTC Nexus 9</SelectedDevice>
-    <DefaultDevice>twitchdeck</DefaultDevice>
+    <SelectedDevice>phone</SelectedDevice>
+    <DefaultDevice>phone</DefaultDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

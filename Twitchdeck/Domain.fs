@@ -15,6 +15,7 @@ type Model = {
     SelectedScene: string
     OBSConfig: ServiceConfig<OBSConfiguration>
     dynamicOBSConfig: Map<string, string>
+    Sfx: string list
 }
 
 //TODO: Strong typing of scenes?

@@ -5,6 +5,24 @@ open Fabulous.DynamicViews
 open Xamarin.Forms
 open System
 
+
+let noSfxView = View.Label(text="No Sound Effects Found.")
+
+let someSfxView (model: Model) dispatcher =
+    View.StackLayout(
+            children = [View.Button(text="Sonic Ring")]
+        )
+
+
+let sfxView (model: Model) dispatcher =
+    View.ContentPage(
+        title="SFX",
+        content=(
+            if model.Sfx.Length > 0 then
+                someSfxView model dispatcher
+            else
+                noSfxView))
+
 let optionsMenu (model: Model) =
     View.ContentPage(
         title = "Options",

@@ -5,6 +5,7 @@ open Fabulous.Core
 open Fabulous.DynamicViews
 open Xamarin.Forms
 open System
+open Newtonsoft.Json
 
 module App = 
     open Twitchdeck.OBSWebsockets
@@ -39,6 +40,7 @@ module App =
             SelectedScene = ""
             OBSConfig = NotConfigured
             dynamicOBSConfig = Map.empty
+            Sfx = []
         }, Cmd.ofSub setup
 
     let changeSceneTo sceneName model =
@@ -58,7 +60,9 @@ module App =
             children=[
                 Views.options model dispatch
                 Views.sceneView model dispatch
-            ])
+                Views.sfxView model dispatch
+            ],
+            currentPage=1)
 
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view

@@ -21,7 +21,8 @@ let sampleModel =
     { SceneNames = []
       SelectedScene = ""
       OBSConfig = OBSConfiguration
-      dynamicOBSConfig = Map.empty }
+      dynamicOBSConfig = Map.empty
+      Sfx = [] }
 
 let getSceneButtonContainer rootView =
     match rootView |> tryFindElementById "SceneButtonContainer" with

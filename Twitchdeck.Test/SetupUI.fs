@@ -11,6 +11,7 @@ let model : Model = {
     SelectedScene = ""
     OBSConfig = NotConfigured
     dynamicOBSConfig = Map.empty
+    Sfx = []
 }
 
 let OBSConfig = Configuration { IPAddress = "Some host"; Port = 8080; Password = None}
