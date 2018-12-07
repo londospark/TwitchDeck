@@ -16,6 +16,7 @@ type Model = {
     OBSConfig: ServiceConfig<OBSConfiguration>
     dynamicOBSConfig: Map<string, string>
     Sfx: string list
+    Muted: bool
 }
 
 //TODO: Strong typing of scenes?
@@ -28,3 +29,10 @@ type Msg =
     | UpdateScenes of string * string list
     | SelectScene of string
     | SceneChanged of string
+
+    | MuteStream
+    | UnmuteStream
+
+    //SFX
+    | GetSounds of string list
+    | PlaySound of string

@@ -2,10 +2,8 @@
 
 open System.Diagnostics
 open Fabulous.Core
-open Fabulous.DynamicViews
 open Xamarin.Forms
 open System
-open Newtonsoft.Json
 
 module App = 
     open Twitchdeck.OBSWebsockets
@@ -32,6 +30,8 @@ module App =
                 fun event ->
                     async { dispatch (SceneChanged event.scene) }
 
+            let! sounds = SFX.soundList ()
+            dispatch (Msg.GetSounds sounds)
         } |> Async.StartImmediate
                 
     let init () =
@@ -41,11 +41,15 @@ module App =
             OBSConfig = NotConfigured
             dynamicOBSConfig = Map.empty
             Sfx = []
+            Muted = false
         }, Cmd.ofSub setup
 
     let changeSceneTo sceneName model =
         OBS.setCurrentScene sceneName
         { model with SelectedScene = sceneName }
+
+    let mute source shouldMute _dispatch =
+        OBS.setMute source shouldMute
 
     let update msg model =
         match msg with
@@ -54,15 +58,13 @@ module App =
         | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
         | SetOBSConfig config ->  { model with OBSConfig = Configuration config }, Cmd.ofSub (connectToObs config)
         | OBSConfigUpdate (key, value) -> { model with dynamicOBSConfig = model.dynamicOBSConfig |> Map.add key value }, Cmd.none
+        | GetSounds soundList -> { model with Sfx = soundList }, Cmd.none
+        | PlaySound sound -> model, Cmd.ofSub (SFX.play sound)
+        | MuteStream -> { model with Muted = true }, Cmd.ofSub (mute "Headset" true)
+        | UnmuteStream -> { model with Muted = false}, Cmd.ofSub (mute "Headset" false)
 
     let view (model: Model) (dispatch: Msg -> unit) =
-        View.TabbedPage(
-            children=[
-                Views.options model dispatch
-                Views.sceneView model dispatch
-                Views.sfxView model dispatch
-            ],
-            currentPage=1)
+        Views.main model dispatch
 
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view

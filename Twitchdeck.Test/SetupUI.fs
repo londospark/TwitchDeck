@@ -12,6 +12,7 @@ let model : Model = {
     OBSConfig = NotConfigured
     dynamicOBSConfig = Map.empty
     Sfx = []
+    Muted = false
 }
 
 let OBSConfig = Configuration { IPAddress = "Some host"; Port = 8080; Password = None}

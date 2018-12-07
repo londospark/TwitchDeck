@@ -16,6 +16,7 @@ module Dto =
         | GetAuthRequired
         | GetSceneList
         | SetCurrentScene of string
+        | SetMute of string * bool
     
     type Request =
         { requestType : RequestType;
@@ -28,6 +29,10 @@ module Dto =
 
             match request.requestType with
             | SetCurrentScene sceneName -> common *> Json.write "scene-name" sceneName
+            | SetMute (source, mute) ->
+                common
+                *> Json.write "source" source
+                *> Json.write "mute" mute
             | _ -> common
     
     type Response = 

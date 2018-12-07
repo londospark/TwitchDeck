@@ -25,6 +25,8 @@ module OBS =
     let getSceneListRequest () = requestFromType GetSceneList
 
     let setCurrentSceneRequest sceneName = requestFromType <| SetCurrentScene sceneName
+
+    let setMuteRequest source mute = requestFromType <| SetMute (source, mute)
     
     let request (request: Request) (continuation: string -> Async<_>) =
         let id = request.messageId
@@ -73,6 +75,9 @@ module OBS =
 
     let setCurrentScene (sceneName: string) =
         request (setCurrentSceneRequest sceneName) <| fun _response -> async.Return( () )
+        
+    let setMute (source: string) (mute: bool) =
+        request (setMuteRequest source mute) <| fun _response -> async.Return( () )
     
     let registerEvent name callback =
         weaver.Post <| Register (ReceivedEvent name, callback)

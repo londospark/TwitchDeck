@@ -5,13 +5,25 @@ open Fabulous.DynamicViews
 open Xamarin.Forms
 open System
 
+let sfxButton name dispatcher =
+    View.Button(
+        text = name,
+        verticalOptions = LayoutOptions.FillAndExpand,
+        command = fun () -> dispatcher (PlaySound name))
 
 let noSfxView = View.Label(text="No Sound Effects Found.")
 
-let someSfxView (model: Model) dispatcher =
+let muteButton (model : Domain.Model) dispatcher =
+    if model.Muted then
+        View.Button(text="Unmute", command=(fun () -> (dispatcher UnmuteStream)))
+    else
+        View.Button(text="Mute", command=(fun () -> (dispatcher MuteStream)))
+
+let someSfxView model dispatcher =
     View.StackLayout(
-            children = [View.Button(text="Sonic Ring")]
-        )
+            children = [for effect in model.Sfx ->
+                            sfxButton effect dispatcher
+                        yield (muteButton model dispatcher)])
 
 
 let sfxView (model: Model) dispatcher =
@@ -144,3 +156,11 @@ let sceneView (model: Domain.Model) dispatcher =
         noScenes
     else // Look into this from an architecture standpoint.
         scenes model.SceneNames model.SelectedScene (fun name () -> dispatcher <| SelectScene name)
+        
+let main (model: Domain.Model) dispatcher =
+    View.TabbedPage(
+            children=[
+                options model dispatcher
+                sceneView model dispatcher
+                sfxView model dispatcher
+            ])
