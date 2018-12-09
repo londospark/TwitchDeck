@@ -22,18 +22,14 @@ let muteButton (model : Domain.Model) dispatcher =
 let someSfxView model dispatcher =
     View.StackLayout(
             children = [for effect in model.Sfx ->
-                            sfxButton effect dispatcher
-                        yield (muteButton model dispatcher)])
+                            sfxButton effect dispatcher])
 
 
 let sfxView (model: Model) dispatcher =
-    View.ContentPage(
-        title="SFX",
-        content=(
-            if model.Sfx.Length > 0 then
-                someSfxView model dispatcher
-            else
-                noSfxView))
+    if model.Sfx.Length > 0 then
+        someSfxView model dispatcher
+    else
+        noSfxView
 
 let optionsMenu (model: Model) =
     View.ContentPage(
@@ -139,17 +135,13 @@ let sceneButton name selected command =
         command = command)
 
 let noScenes =
-    View.ContentPage(
-        title="OBS Scenes",
-        content = View.Label(text="There are no scenes defined."))
+    View.Label(text="There are no scenes defined.")
 
 let scenes (names: string list) selectedScene selectSceneCommand =
-    View.ContentPage(
-        title = "OBS Scenes",
-        content = View.StackLayout(
-                    automationId = "SceneButtonContainer",
-                    children = [for name in names ->
-                                    sceneButton name (name = selectedScene) (selectSceneCommand name)]))
+    View.StackLayout(
+        automationId = "SceneButtonContainer",
+        children = [for name in names ->
+                    sceneButton name (name = selectedScene) (selectSceneCommand name)])
 
 let sceneView (model: Domain.Model) dispatcher =
     if model.SceneNames.Length = 0 then
@@ -157,10 +149,26 @@ let sceneView (model: Domain.Model) dispatcher =
     else // Look into this from an architecture standpoint.
         scenes model.SceneNames model.SelectedScene (fun name () -> dispatcher <| SelectScene name)
         
+let withMuteButton (view: ViewElement) title model dispatcher =
+    View.ContentPage(
+        title = title,
+        content =
+            View.AbsoluteLayout (
+                children = [
+                    view
+                        .LayoutFlags(AbsoluteLayoutFlags.All)
+                        .LayoutBounds(Rectangle(0.0, 0.0, 1.0, 0.8))
+                    (muteButton model dispatcher)
+                        .LayoutFlags(AbsoluteLayoutFlags.All)
+                        .LayoutBounds(Rectangle(0.0, 1.0, 1.0, 0.2))
+                ]
+            )
+    )
+
 let main (model: Domain.Model) dispatcher =
     View.TabbedPage(
             children=[
                 options model dispatcher
-                sceneView model dispatcher
-                sfxView model dispatcher
+                withMuteButton (sceneView model dispatcher) "OBS Scenes" model dispatcher
+                withMuteButton (sfxView model dispatcher) "Sounds" model dispatcher
             ])
