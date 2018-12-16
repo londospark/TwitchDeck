@@ -32,4 +32,5 @@ let ``When we aren't required to authenticate then we always get Ok when we try`
                         "status": "ok"
                       }""" (id |> string)
     OBS.authenticateFromChallenge None challenge
+    |> Async.RunSynchronously
     |> should equal (Result<unit, string>.Ok ())

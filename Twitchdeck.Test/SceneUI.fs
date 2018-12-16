@@ -84,7 +84,7 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
 
     button.BackgroundColor |> should equal (Color.FromHex "#33B2FF")
 
-[<Fact>] //TODO: Gareth - this test is dishonest!
+[<Fact(Skip = "Need to decouple more - look at Cmd.OfSub")>] //TODO: Gareth - this test is dishonest!
 let ``When we send a SelectScene message, the relavent button becomes highlighted`` () =
     let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "" }
 
@@ -92,7 +92,7 @@ let ``When we send a SelectScene message, the relavent button becomes highlighte
     model.SelectedScene |> should equal "Scene 1"
 
 
-[<Fact>]
+[<Fact(Skip = "Need to decouple more - look at Cmd.OfSub")>]
 let ``When we press a button it executes the command passed to it`` () =
     let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2" }
 
