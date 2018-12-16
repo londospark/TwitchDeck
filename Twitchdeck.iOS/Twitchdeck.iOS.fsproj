@@ -19,7 +19,7 @@
     </NuGetPackageImportStamp>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <RestorePackages>true</RestorePackages>
-    <SelectedDevice>Gareth’s iPad</SelectedDevice>
+    <SelectedDevice>iPhone 5s iOS 10.1</SelectedDevice>
     <TargetiOSDevice>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
 &lt;plist version="1.0"&gt;
@@ -38,7 +38,7 @@
 &lt;/dict&gt;
 &lt;/plist&gt;
 </TargetiOSDevice>
-    <DefaultDevice>iPhone XR iOS 12.1</DefaultDevice>
+    <DefaultDevice>iPhone 5s iOS 10.1</DefaultDevice>
     <DeveloperId>gareth@glees.co.uk</DeveloperId>
     <DevelopmentTeamId>PA3RVTL797</DevelopmentTeamId>
   </PropertyGroup>

@@ -17,6 +17,7 @@ module Dto =
         | GetSceneList
         | SetCurrentScene of string
         | SetMute of string * bool
+        | Authenticate of string
     
     type Request =
         { requestType : RequestType;
@@ -33,16 +34,21 @@ module Dto =
                 common
                 *> Json.write "source" source
                 *> Json.write "mute" mute
+            
+            | Authenticate auth ->
+                common *> Json.write "auth" auth
             | _ -> common
     
     type Response = 
-        { responseId : Guid }
+        { responseId : Guid; error: string option }
 
-        static member New responseId = { responseId = responseId |> Guid.Parse }
+        static member New responseId error =
+            { responseId = responseId |> Guid.Parse; error = error}
 
         static member Decoder =
             Response.New
             <!> Json.read "message-id"
+            <*> Json.readOrDefault "error" None
         
         static member FromJson (_:Response) = Response.Decoder
     

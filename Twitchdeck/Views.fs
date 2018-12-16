@@ -5,7 +5,10 @@ open Fabulous.DynamicViews
 open Xamarin.Forms
 open System
 
+let border (view: ViewElement) = view.BorderColor(Color.AliceBlue).BorderWidth(3.0)
+
 let sfxButton name dispatcher =
+    border <|
     View.Button(
         text = name,
         verticalOptions = LayoutOptions.FillAndExpand,
@@ -14,6 +17,7 @@ let sfxButton name dispatcher =
 let noSfxView = View.Label(text="No Sound Effects Found.")
 
 let muteButton (model : Domain.Model) dispatcher =
+    border <|
     if model.Muted then
         View.Button(text="Unmute", command=(fun () -> (dispatcher UnmuteStream)))
     else
@@ -128,6 +132,7 @@ let options (model: Model) dispatcher =
 
 let sceneButton name selected command =
     let color = if selected then (Color.FromHex "#33B2FF") else Color.Default
+    border <|
     View.Button(
         text = name,
         verticalOptions = LayoutOptions.FillAndExpand,

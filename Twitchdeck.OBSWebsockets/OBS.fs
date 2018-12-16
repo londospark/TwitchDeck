@@ -8,15 +8,10 @@ module OBS =
     open RequestResponse
     open FSharp.Data.JsonExtensions
     open Dto
+    open System.Security.Cryptography
 
     let weaver = RequestResponse.messageWeaver FsWebsocket.sendRequest
-
-    let startCommunication server port =
-        async {
-            weaver.Post Flush
-            do! FsWebsocket.connectTo weaver server port
-        }
-    
+        
     let requestFromType type' =
         { requestType = type'; messageId = Guid.NewGuid() }
 
@@ -24,17 +19,19 @@ module OBS =
 
     let getSceneListRequest () = requestFromType GetSceneList
 
+    let authenticateRequest auth = requestFromType <| Authenticate auth
+
     let setCurrentSceneRequest sceneName = requestFromType <| SetCurrentScene sceneName
 
     let setMuteRequest source mute = requestFromType <| SetMute (source, mute)
     
-    let request (request: Request) (continuation: string -> Async<_>) =
-        let id = request.messageId
-        let receiver response =
-            async {
-                return! continuation response
-            }
-        weaver.Post (Send (MessageId id, request |> Json.serialize |> Json.format, receiver))
+    let asyncRequest (request: Request) =
+        async {
+            let id = request.messageId
+            return!
+                weaver.PostAndAsyncReply
+                    <| fun channel -> (Send (MessageId id, request |> Json.serialize |> Json.format, channel))
+        }
 
     let exceptionToResult func =
         try
@@ -42,25 +39,45 @@ module OBS =
         with
         | _ as ex -> Result.Error (ex.Message) 
 
-    let authenticateFromChallenge (_password : string option) (challenge: string) =
-        let response : Result<AuthChallenge, string> =
-            (fun () -> challenge |> Json.parse |> Json.deserialize) |> exceptionToResult
+    let sendPasswordToOBS (password : string option) (salt : string) (challenge : string) =
+        async {
+            match password with
+            | Some pass ->
+                let secret = SHA256Managed.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(pass + salt))
+                let base64secret = System.Convert.ToBase64String(secret)
+                let authResponse = SHA256Managed.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(base64secret + challenge))
+                let base64authResponse = System.Convert.ToBase64String(authResponse)
+                let! response = asyncRequest (authenticateRequest base64authResponse)
+                let authResponse : Response = response |> Json.parse |> Json.deserialize
+                System.Diagnostics.Debug.WriteLine(response)
+                return Result.Ok ()
+            | None ->
+                return Result.Error "Cannot login without password."
+        }
 
-        response |> Result.bind(fun challenge ->
-            match challenge with 
-            | NoAuthRequired _ -> Result.Ok ()
-            | AuthRequired _ -> Result.Error "We don't yet support auth.")
+    let authenticateFromChallenge (password : string option) (challenge: string): Async<Result<unit, string>> =
+        async {
+            let response : Result<AuthChallenge, string> =
+                (fun () -> challenge |> Json.parse |> Json.deserialize) |> exceptionToResult
+            
+            return!
+                match response with
+                | Result.Ok authChallenge -> 
+                    match authChallenge with 
+                    | NoAuthRequired _ -> (Result.Ok () |> async.Return)
+                    | AuthRequired info -> sendPasswordToOBS password info.salt info.challenge
+                | Result.Error err -> err |> Result.Error |> async.Return
+        }
      
-    let authenticate (password : string option) =
-        request (authRequiredRequest ()) <| fun response ->
-            async {
-                let _result = response |> authenticateFromChallenge password
-                return ()
-            }
+    let authenticate (password : string option) : Async<Result<unit, string>> =
+        async {
+            let! response = asyncRequest (authRequiredRequest ())
+            return! response |> authenticateFromChallenge password
+        }
 
-    let getSceneList (callback) =
-        request (getSceneListRequest ()) <| fun response ->
+    let getSceneList () : Async<string * string list> =
             async {
+                let! response = asyncRequest (getSceneListRequest ())
                 let parsed = JsonValue.Parse(response)
                 let scenes = parsed?scenes
                 let currentScene = parsed?``current-scene``.AsString()
@@ -68,16 +85,22 @@ module OBS =
                     scenes.AsArray ()
                     |> Array.toList
                     |> List.map (fun jsarray -> jsarray?name.AsString())
-                return! (currentScene, sceneList) |> callback
+                return (currentScene, sceneList)
             }
 
     let serialiseRequest (request: Request) = request |> Json.serialize |> Json.format
 
     let setCurrentScene (sceneName: string) =
-        request (setCurrentSceneRequest sceneName) <| fun _response -> async.Return( () )
+        async {
+            let! _ = asyncRequest (setCurrentSceneRequest sceneName)
+            return ()
+        }
         
     let setMute (source: string) (mute: bool) =
-        request (setMuteRequest source mute) <| fun _response -> async.Return( () )
+        async {
+            let! _ = asyncRequest (setMuteRequest source mute)
+            return ()
+        }
     
     let registerEvent name callback =
         weaver.Post <| Register (ReceivedEvent name, callback)
@@ -91,3 +114,11 @@ module OBS =
 
     let registerSwitchScene callback =
         registerEvent "SwitchScenes" (switchSceneCallback callback)
+
+    
+    let startCommunication server port password : Async<Result<unit, string>> =
+        async {
+            weaver.Post Flush
+            do! FsWebsocket.connectTo weaver server port
+            return! authenticate password
+        }

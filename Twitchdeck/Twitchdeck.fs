@@ -12,11 +12,14 @@ module App =
     //TODO: Check that we can connect and handle errors
     let connectToObs (config : OBSConfiguration) dispatch =
         async {
-            do! OBS.startCommunication config.IPAddress config.Port
+            let! result = OBS.startCommunication config.IPAddress config.Port config.Password
+            match result with
+            | Result.Ok () -> 
+                let! scenes = OBS.getSceneList ()
+                dispatch (UpdateScenes scenes)
+            | Result.Error err ->
+                Debug.WriteLine(err)
 
-            return OBS.getSceneList <|
-                fun scenes -> 
-                    async { dispatch (UpdateScenes scenes) }
         } |> Async.StartImmediate
     
     let attemptExternalConnections (model : Domain.Model) dispatch =
@@ -45,11 +48,15 @@ module App =
         }, Cmd.ofSub setup
 
     let changeSceneTo sceneName model =
-        OBS.setCurrentScene sceneName
-        { model with SelectedScene = sceneName }
+        async {
+            do! OBS.setCurrentScene sceneName
+            return { model with SelectedScene = sceneName }
+        } |> Async.RunSynchronously //TODO: NO! - Fix with Cmd.OfSub
 
     let mute source shouldMute _dispatch =
-        OBS.setMute source shouldMute
+        async {
+            do! OBS.setMute source shouldMute
+        } |> Async.Start
 
     let update msg model =
         match msg with
@@ -87,7 +94,7 @@ type App () as app =
     // Uncomment this line to enable live update in debug mode. 
     // See https://fsprojects.github.io/Fabulous/tools.html for further  instructions.
     //
-    //do runner.EnableLiveUpdate()
+    do runner.EnableLiveUpdate()
 #endif    
 
     // Uncomment this code to save the application state to app.Properties using Newtonsoft.Json
