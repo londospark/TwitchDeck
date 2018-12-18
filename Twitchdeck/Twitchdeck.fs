@@ -47,11 +47,10 @@ module App =
             Muted = false
         }, Cmd.ofSub setup
 
-    let changeSceneTo sceneName model =
+    let changeSceneTo sceneName _dispatch =
         async {
             do! OBS.setCurrentScene sceneName
-            return { model with SelectedScene = sceneName }
-        } |> Async.RunSynchronously //TODO: NO! - Fix with Cmd.OfSub
+        } |> Async.Start
 
     let mute source shouldMute _dispatch =
         async {
@@ -61,8 +60,8 @@ module App =
     let update msg model =
         match msg with
         | UpdateScenes (scene, scenes) -> { model with SceneNames = scenes; SelectedScene = scene }, Cmd.none
-        | SelectScene name -> model |> changeSceneTo name, Cmd.none
-        | SceneChanged name -> { model with SelectedScene = name}, Cmd.none
+        | SelectScene name -> { model with SelectedScene = name }, Cmd.ofSub (changeSceneTo name)
+        | SceneChanged name -> { model with SelectedScene = name }, Cmd.none
         | SetOBSConfig config ->  { model with OBSConfig = Configuration config }, Cmd.ofSub (connectToObs config)
         | OBSConfigUpdate (key, value) -> { model with dynamicOBSConfig = model.dynamicOBSConfig |> Map.add key value }, Cmd.none
         | GetSounds soundList -> { model with Sfx = soundList }, Cmd.none

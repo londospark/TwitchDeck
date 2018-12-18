@@ -84,19 +84,18 @@ let ``When a scene is selected then the relevant button should be highlighted`` 
 
     button.BackgroundColor |> should equal (Color.FromHex "#33B2FF")
 
-[<Fact(Skip = "Need to decouple more - look at Cmd.OfSub")>] //TODO: Gareth - this test is dishonest!
+[<Fact>] //TODO: Gareth - this test is dishonest!
 let ``When we send a SelectScene message, the relavent button becomes highlighted`` () =
     let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "" }
 
     let (model, _command) = Twitchdeck.App.update (Msg.SelectScene "Scene 1") model
     model.SelectedScene |> should equal "Scene 1"
 
-
-[<Fact(Skip = "Need to decouple more - look at Cmd.OfSub")>]
+[<Fact>]
 let ``When we press a button it executes the command passed to it`` () =
     let model = { sampleModel with SceneNames = ["Scene 1"; "Scene 2"]; SelectedScene = "Scene 2" }
 
-    let mutable messagesReceived = []
+    let mutable messagesReceived: Msg list = []
 
     Views.sceneView model (
         fun message ->
