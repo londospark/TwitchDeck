@@ -15,7 +15,7 @@ type Weave =
     | Flush
     | Quit
 
-let messageWeaver sender =
+let messageWeaver (sender: Threading.CancellationToken -> string -> Async<Result<unit, string>>) =
     let start (processor: MailboxProcessor<_>) =
         let rec loop channels (events: Map<ReceivedEvent, string -> Async<unit>>) =
             async {
@@ -28,8 +28,10 @@ let messageWeaver sender =
                         if channels |> Map.containsKey messageId then
                             failwithf "There's already a receiver defined for '%A'" messageId
                         async {
-                            do! request |> sender token
-                            return! loop (channels |> Map.add messageId channel) events
+                            let! response =  request |> sender token
+                            match response with
+                            | Result.Ok () -> return! loop (channels |> Map.add messageId channel) events
+                            | Result.Error error -> failwithf "Send error '%s'" error
                         }
                     | Receive (messageId, response) ->
                         match channels |> Map.tryFind messageId with

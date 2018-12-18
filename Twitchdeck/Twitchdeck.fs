@@ -18,7 +18,8 @@ module App =
                 let! scenes = OBS.getSceneList ()
                 dispatch (UpdateScenes scenes)
             | Result.Error err ->
-                Debug.WriteLine(err)
+                do! Application.Current.MainPage.DisplayAlert("Error",  err, "OK")
+                    |> Async.AwaitTask
 
         } |> Async.StartImmediate
     

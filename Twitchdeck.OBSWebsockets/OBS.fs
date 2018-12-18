@@ -10,6 +10,11 @@ module OBS =
     open Dto
     open System.Security.Cryptography
 
+    let (|Ok|Error|) (result: Result<unit, string>) =
+        match result with
+        | Result.Ok () -> Ok
+        | e -> Error e
+
     let weaver = RequestResponse.messageWeaver FsWebsocket.sendRequest
         
     let requestFromType type' =
@@ -41,16 +46,19 @@ module OBS =
 
     let sendPasswordToOBS (password : string option) (salt : string) (challenge : string) =
         async {
+            let encrypt (text: string): byte array = SHA256Managed.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(text))
+            let base64 (bytes: byte array): string = System.Convert.ToBase64String(bytes)
+
             match password with
             | Some pass ->
-                let secret = SHA256Managed.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(pass + salt))
-                let base64secret = System.Convert.ToBase64String(secret)
-                let authResponse = SHA256Managed.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(base64secret + challenge))
-                let base64authResponse = System.Convert.ToBase64String(authResponse)
-                let! response = asyncRequest (authenticateRequest base64authResponse)
+                let secret = (pass + salt) |> encrypt |> base64
+                let authResponse = (secret + challenge) |> encrypt |> base64
+                let! response = asyncRequest (authenticateRequest authResponse)
                 let authResponse : Response = response |> Json.parse |> Json.deserialize
-                System.Diagnostics.Debug.WriteLine(response)
-                return Result.Ok ()
+
+                match authResponse.error with
+                | None -> return Result.Ok ()
+                | Some message -> return Result.Error message
             | None ->
                 return Result.Error "Cannot login without password."
         }
@@ -115,10 +123,11 @@ module OBS =
     let registerSwitchScene callback =
         registerEvent "SwitchScenes" (switchSceneCallback callback)
 
-    
     let startCommunication server port password : Async<Result<unit, string>> =
         async {
             weaver.Post Flush
-            do! FsWebsocket.connectTo weaver server port
-            return! authenticate password
+            let! response = FsWebsocket.connectTo weaver server port
+            match response with
+            | Ok -> return! authenticate password
+            | Error e -> return e
         }

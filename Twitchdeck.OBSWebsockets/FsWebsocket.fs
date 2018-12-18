@@ -49,28 +49,28 @@ let receive (weaver: MailboxProcessor<Weave>) =
         loop client receiveSegment token
     MailboxProcessor.Start start
     
-//TODO: Gareth - This is a very very bad practicey thing to do!
-let fireAndForget (fn : Task)  =
+let awaitResult (task : Task): Async<Result<unit, string>> =
     async {
-        try
-            do! fn |> Async.AwaitTask
-        with
-        | err ->
-            System.Diagnostics.Debug.WriteLine(err.Message)
+        let! result = task |> Async.AwaitTask |> Async.Catch
+        return
+            match result with
+            | Choice1Of2 _ -> Result.Ok ()
+            | Choice2Of2 ex -> Result.Error ex.Message
     }
 
-let sendRequest token (message : string) =
+let sendRequest token (message : string): Async<Result<unit, string>> =
     async { 
         let encoding = new UTF8Encoding()
         
         let buffer = message |> encoding.GetBytes
         let bufferSegment = new ArraySegment<byte>(buffer)
         if client.State = WebSocketState.Open then
-            do! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> fireAndForget 
+            return! client.SendAsync(bufferSegment, WebSocketMessageType.Text, true, token) |> awaitResult
+        else
+            return Result.Error "Websocket not open."
     }
 
-//TODO: Gareth - Did we connect or not?
-let connectTo weaver server port =
+let connectTo (weaver: MailboxProcessor<Weave>) (server: string) (port: int): Async<Result<unit, string>> =
     async {
         client.Dispose()
         client <- new ClientWebSocket();
@@ -79,7 +79,14 @@ let connectTo weaver server port =
         let uriString = sprintf "ws://%s:%d" server port
         if Uri.IsWellFormedUriString(uriString, UriKind.Absolute) then
             let task = client.ConnectAsync(new Uri(uriString), token)
-            do! task |> fireAndForget
-            receive weaver |> ignore
+            let! result = task |> awaitResult
+            return
+                match result with
+                | Result.Ok _ ->
+                    receive weaver |> ignore
+                    Result.Ok ()
+                | Result.Error _ -> Result.Error "Could not connect."
+        else
+            return Result.Error "Malformed URL"
     }
 
